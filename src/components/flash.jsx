@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Heart, ShoppingCart, Eye } from "lucide-react";
+import { BACKEND_URL } from "../Url";
 
 const ProductCardSkeleton = () => (
   <div className="min-w-[220px] flex-shrink-0 animate-pulse flex flex-col items-center p-4 bg-white rounded-lg shadow-md">
@@ -109,7 +110,7 @@ export const FlashSale = () => {
   useEffect(() => {
     const fetchFlashSales = async () => {
       try {
-        const response = await fetch("http://localhost:3000/flash-sales");
+        const response = await fetch(`${BACKEND_URL}flash-sales`);
         const data = await response.json();
         setFlashSales(data);
         setLoading(false);
