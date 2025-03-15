@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './App.css';
 import './index.css';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { Signup } from './pages/signup';
 import { Signin } from './pages/signin';
 import { Dashboard } from './pages/dashboard';
@@ -13,7 +13,6 @@ import { Navbar } from './components/navbar';
 import GiftShopPage from './components/allProducts';
 import { Footer } from './components/footer';
 import { NavbarItem } from './components/navbar-item';
-import { CartProvider } from './pages/cartContext';
 
 const Layout = ({ children, setNavCategory }) => {
   return (
@@ -38,19 +37,16 @@ function App() {
           path="/*"
           element={
             <Layout navCategory={navCategory} setNavCategory={setNavCategory}>
-
               <Routes>
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/" element={<Navigate to="/home" replace />} />
                 <Route path="/home" element={<Main />} />
+                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/product/:productId" element={<ProductPage />} />
                 <Route path="/all" element={<GiftShopPage />} />
                 <Route path="/category/:navCategory" element={<NavbarItem navCategory={navCategory} />} />
-                
                 <Route path="/cart" element={<Cart />} />
-                
                 <Route path="/profile" element={<Profile />} />
               </Routes>
-
             </Layout>
           }
         />
