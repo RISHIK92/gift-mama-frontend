@@ -48,50 +48,58 @@ const CategoryDropdown = ({setNavCategory, navigate}) => {
   
   return (
     <div className="relative" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-      <button className="px-4 py-2 text-gray-600 hover:text-red-500 text-sm font-medium flex items-center gap-1" onClick={() => navigate('/all')}>
+      <button className="px-4 py-2 text-gray-600 hover:text-red-500 font-medium flex items-center gap-1 transition-colors duration-200" onClick={() => navigate('/all')}>
         Categories
-        <ChevronDown className="h-4 w-4" />
+        <ChevronDown className="h-4 w-4 transition-transform duration-200" />
       </button>
       
       {isHovered && (
-        <div className="absolute top-full left-0 bg-white rounded-lg shadow-lg w-[1000px] p-6 z-20 grid grid-cols-4 gap-8">
+        <div className="absolute top-full -left-8 bg-white rounded-lg shadow-xl w-[900px] p-8 z-20 grid grid-cols-4 gap-8 border border-gray-100 animate-fadeIn">
           <div className="col-span-1">
             {productsLoading ? (
-              <div className="bg-gray-200 rounded-lg w-full h-64 flex items-center justify-center text-gray-600">
-                Loading...
+              <div className="bg-gray-100 rounded-lg w-full h-64 flex items-center justify-center text-gray-500 shadow-inner">
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                  <p>Loading...</p>
+                </div>
               </div>
             ) : productToDisplay ? (
-                    <div className="bg-white rounded-lg w-full h-64 flex flex-col items-center justify-center cursor-pointer" onClick={() => navigate(`/product/${productToDisplay.title}`)}>
-                        <img 
-                        src={productToDisplay.image} 
-                        alt={productToDisplay.title} 
-                        className="max-h-48 max-w-full object-contain mb-2"
-                        />
-                        <p className="text-sm font-medium text-center">{productToDisplay.title}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                        <span className="text-red-500 font-medium">₹{productToDisplay.discountedPrice}</span>
-                        {productToDisplay.discount > 0 && (
-                            <>
-                                <span className="text-gray-400 line-through text-xs">₹{productToDisplay.price}</span>
-                                <span className="text-green-500 text-xs">{productToDisplay.discount}% off</span>
-                            </>
-                        )}
+                    <div className="bg-white rounded-lg w-full h-64 flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow duration-200 p-4 border border-gray-100" onClick={() => navigate(`/product/${productToDisplay.title}`)}>
+                        <div className="h-48 w-full flex items-center justify-center mb-3">
+                          <img 
+                            src={productToDisplay.image} 
+                            alt={productToDisplay.title} 
+                            className="max-h-44 max-w-full object-contain hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <p className="text-sm font-medium text-center text-gray-800 line-clamp-1">{productToDisplay.title}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-red-500 font-semibold">₹{productToDisplay.discountedPrice}</span>
+                          {productToDisplay.discount > 0 && (
+                              <>
+                                  <span className="text-gray-400 line-through text-xs">₹{productToDisplay.price}</span>
+                                  <span className="text-green-600 text-xs font-medium bg-green-50 px-2 py-0.5 rounded-full">{productToDisplay.discount}% off</span>
+                              </>
+                          )}
                         </div>
               </div>
             ) : (
-              <div className="bg-gray-200 rounded-lg p-8 w-full h-64 flex items-center justify-center text-gray-600">
-                Hover over an item to see product
+              <div className="bg-gray-50 rounded-lg w-full h-64 flex items-center justify-center text-gray-500 border border-dashed border-gray-300">
+                <div className="text-center p-4">
+                  <svg className="w-12 h-12 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  <p>Hover over an item to see product</p>
+                </div>
               </div>
             )}
           </div>
 
-          <div className="col-span-1">
-            <h3 className="font-medium text-sm mb-4">Categories</h3>
-            <div className="space-y-3">
+          <div className="col-span-1 border-r border-gray-100 pr-6">
+            <h3 className="font-medium text-gray-800 mb-4 uppercase text-xs tracking-wider">Categories</h3>
+            <div className="space-y-2">
               {allCategories.map((item) => (
                 <button 
                   key={item} 
-                  className="block text-gray-600 text-sm hover:text-red-500 w-full text-left" 
+                  className="block text-gray-600 text-sm hover:text-red-500 w-full text-left py-1 hover:translate-x-1 transition-transform duration-200" 
                   onClick={() => {
                     navigate(`/category/${item}`);
                     setNavCategory(item);
@@ -104,13 +112,13 @@ const CategoryDropdown = ({setNavCategory, navigate}) => {
             </div>
           </div>
 
-          <div className="col-span-1">
-            <h3 className="font-medium text-sm mb-4">Gifts for Recipients</h3>
-            <div className="space-y-3">
+          <div className="col-span-1 border-r border-gray-100 pr-6">
+            <h3 className="font-medium text-gray-800 mb-4 uppercase text-xs tracking-wider">Gifts for Recipients</h3>
+            <div className="space-y-2">
               {allRecipients.map((item) => (
                 <button 
                   key={item} 
-                  className="block text-gray-600 text-sm hover:text-red-500 w-full text-left" 
+                  className="block text-gray-600 text-sm hover:text-red-500 w-full text-left py-1 hover:translate-x-1 transition-transform duration-200" 
                   onClick={() => {
                     navigate(`/category/${item}`);
                     setNavCategory(item);
@@ -124,12 +132,12 @@ const CategoryDropdown = ({setNavCategory, navigate}) => {
           </div>
 
           <div className="col-span-1">
-            <h3 className="font-medium text-sm mb-4">Gifts for Occasions</h3>
-            <div className="space-y-3">
+            <h3 className="font-medium text-gray-800 mb-4 uppercase text-xs tracking-wider">Gifts for Occasions</h3>
+            <div className="space-y-2">
               {allOccasions.map((item) => (
                 <button 
                   key={item} 
-                  className="block text-gray-600 text-sm hover:text-red-500 w-full text-left" 
+                  className="block text-gray-600 text-sm hover:text-red-500 w-full text-left py-1 hover:translate-x-1 transition-transform duration-200" 
                   onClick={() => {
                     navigate(`/category/${item}`);
                     setNavCategory(item);
