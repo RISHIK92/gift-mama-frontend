@@ -57,7 +57,10 @@ export const Cart = () => {
     }
   };
   
-  const updateQuantity = async (itemId, newQuantity) => {
+  const updateQuantity = async (e, itemId, newQuantity) => {
+    // Stop propagation to prevent navigation
+    e.stopPropagation();
+    
     try {
       setActionLoading({ type: 'update', itemId });
       const token = localStorage.getItem('authToken');
@@ -93,7 +96,10 @@ export const Cart = () => {
     }
   };
   
-  const removeItem = async (itemId) => {
+  const removeItem = async (e, itemId) => {
+    // Stop propagation to prevent navigation
+    e.stopPropagation();
+    
     try {
       setActionLoading({ type: 'remove', itemId });
       const token = localStorage.getItem('authToken');
@@ -166,6 +172,11 @@ export const Cart = () => {
       setCheckoutLoading(false);
       navigate('/checkout');
     }, 800);
+  };
+  
+  // Navigate to product detail
+  const navigateToProduct = (productName) => {
+    navigate(`/product/${productName}`);
   };
   
   // Loading skeleton for cart items
@@ -246,20 +257,30 @@ export const Cart = () => {
                 
                 return (
                   <div key={item.id} className={`flex mb-6 pb-4 border-b border-gray-200 ${isRemoving ? 'opacity-50 animate-pulse' : ''}`}>
-                    <div className="w-[140px] h-[140px] rounded-md bg-gray-200 overflow-hidden mr-3">
+                    {/* Product Image - Clickable */}
+                    <div 
+                      className="w-[140px] h-[140px] rounded-md bg-gray-200 overflow-hidden mr-3 cursor-pointer"
+                      onClick={() => navigateToProduct(product.name)}
+                    >
                       <img 
                         src={product.images[0]?.mainImage || product.images[0]?.displayImage || ""} 
                         className="w-full h-full object-cover" 
                         alt={product.name}
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = "/placeholder-image.jpg"; // Fallback image
+                          e.target.src = "/placeholder-image.jpg";
                         }}
                       />
                     </div>
                     
                     <div className="flex-1">
-                      <h3 className="font-bold text-lg">{product.name}</h3>
+                      <h3 
+                        className="font-bold text-lg cursor-pointer hover:text-red-500 transition-colors"
+                        onClick={() => navigateToProduct(product.name)}
+                      >
+                        {product.name}
+                      </h3>
+                      
                       <p className="text-red-500 text-sm">
                         {product.categories.join(' / ')}
                       </p>
@@ -268,7 +289,7 @@ export const Cart = () => {
                         <div className="flex items-center gap-4">
                           <div className={`flex items-center border border-gray-300 rounded-full ${isUpdating ? 'border-red-300 animate-pulse' : ''}`}>
                             <button
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              onClick={(e) => updateQuantity(e, item.id, item.quantity - 1)}
                               className="w-8 h-8 flex mb-1 items-center justify-center"
                               disabled={item.quantity <= 1 || isUpdating || isRemoving}
                             >
@@ -282,7 +303,7 @@ export const Cart = () => {
                               )}
                             </span>
                             <button
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              onClick={(e) => updateQuantity(e, item.id, item.quantity + 1)}
                               className="w-8 h-8 flex mb-1 items-center justify-center"
                               disabled={isUpdating || isRemoving}
                             >
@@ -291,7 +312,7 @@ export const Cart = () => {
                           </div>
                           <button 
                             className="text-red-500"
-                            onClick={() => removeItem(item.id)}
+                            onClick={(e) => removeItem(e, item.id)}
                             disabled={isUpdating || isRemoving}
                           >
                             {isRemoving ? (
@@ -411,7 +432,7 @@ export const Cart = () => {
           </div>
         )}
         
-        <div className="mt-20 relative left-0">
+        <div className="mt-20 relative left-0"> 
         </div>
       </div>
     </>
