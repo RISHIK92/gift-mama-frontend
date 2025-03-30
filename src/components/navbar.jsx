@@ -272,20 +272,6 @@ const LocationModal = ({ onClose, onAllowLocation, onManualEntry }) => {
         {!showManualInputs ? (
           <div className="space-y-4">
             <button 
-              onClick={onAllowLocation}
-              className="w-full flex items-center justify-center gap-2 bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition-colors"
-            >
-              <MapPinned className="h-4 w-4" />
-              Allow Location Access
-            </button>
-            
-            <div className="flex items-center">
-              <div className="flex-1 h-px bg-gray-200"></div>
-              <span className="px-4 text-sm text-gray-500">OR</span>
-              <div className="flex-1 h-px bg-gray-200"></div>
-            </div>
-            
-            <button 
               onClick={() => setShowManualInputs(true)}
               className="w-full border border-red-500 text-red-500 py-3 rounded-lg hover:bg-red-50 transition-colors"
             >
