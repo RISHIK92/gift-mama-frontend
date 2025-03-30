@@ -1,11 +1,65 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { MapPin, ShoppingCart, ChevronDown, CircleUserRound, MapPinned } from 'lucide-react';
+import { MapPin, ShoppingCart, ChevronDown, MapPinned, CircleUserRound, Wallet, ShoppingBag, Edit } from 'lucide-react';
 import { Search } from "./search";
 import axios from 'axios';
 import { BACKEND_URL } from '../Url';
 import { useNavigate } from 'react-router-dom';
 import useCategory from '../hooks/useCategory';
 import CategoryDropdown from './categoryDropdown';
+
+const ProfileDropdown = ({ navigate }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const toggleDropdown = () => {
+    setIsOpen(!isOpen);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const menuItems = [
+    { icon: <Wallet className="h-5 w-5" />, label: "Wallet", path: "/wallet" },
+    { icon: <ShoppingBag className="h-5 w-5" />, label: "Orders", path: "/orders" },
+    { icon: <Edit className="h-5 w-5" />, label: "Edit Profile", path: "/profile" }
+  ];
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div onClick={toggleDropdown} className="cursor-pointer">
+        <CircleUserRound className='h-8 w-8 text-gray-500 ml-4' />
+      </div>
+
+      {isOpen && (
+        <div className="absolute mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+          {menuItems.map((item, index) => (
+            <div
+              key={index}
+              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-red-50 cursor-pointer"
+              onClick={() => {
+                navigate(item.path);
+                setIsOpen(false);
+              }}
+            >
+              <div className="text-red-500 mr-3">{item.icon}</div>
+              {item.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const LocationModal = ({ onClose, onAllowLocation, onManualEntry }) => {
   const [showManualInputs, setShowManualInputs] = useState(false);
@@ -291,9 +345,7 @@ export const Navbar = ({setNavCategory}) => {
           </div>
         </div>
         {token ? 
-          <div onClick={() => navigate('/profile')}>
-            <CircleUserRound className='h-8 w-8 text-gray-500 ml-4 cursor-pointer'/>
-          </div>
+          <ProfileDropdown navigate={navigate} />
           : 
           <div className="flex items-center justify-center w-32 h-10 rounded-xl bg-[#FF3B3B] text-white font-thin ml-8">
             <p className="text-sm font-extralight cursor-pointer" onClick={() => navigate('/signin')}>Login/Register</p>
