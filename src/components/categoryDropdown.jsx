@@ -6,7 +6,7 @@ import useProducts from '../hooks/useProduct';
 
 const CategoryDropdown = ({setNavCategory, navigate}) => {
   const [isHovered, setIsHovered] = useState(false);
-  const {allCategories, allOccasions, allRecipients, loading, error} = useAllCategories();
+  const {allOccasions, allRecipients, categories, loading, error} = useAllCategories();
   const { products, loading: productsLoading } = useProducts();
   const [selectedType, setSelectedType] = useState('category');
   const [selectedItem, setSelectedItem] = useState(null);
@@ -25,24 +25,19 @@ const CategoryDropdown = ({setNavCategory, navigate}) => {
         product.occasion && product.occasion.includes(itemName)
       );
     } else if (type === 'recipient') {
-      // Assuming recipients might be stored in category or some other field
-      // Adjust this logic based on your data structure
       matchingProducts = products.filter(product => 
         product.category && product.category.includes(itemName)
       );
     }
     
-    // Return the first matching product (you could sort by date if available)
     return matchingProducts && matchingProducts.length > 0 ? matchingProducts[0] : null;
   };
   
-  // Handle mouse hover on category/occasion/recipient
   const handleItemHover = (item, type) => {
     setSelectedItem(item);
     setSelectedType(type);
   };
   
-  // Get the product to display in the image area
   const productToDisplay = selectedItem ? 
     findMatchingProduct(selectedItem, selectedType) : null;
   
@@ -96,7 +91,7 @@ const CategoryDropdown = ({setNavCategory, navigate}) => {
           <div className="col-span-1 border-r border-gray-100 pr-6">
             <h3 className="font-medium text-gray-800 mb-4 uppercase text-xs tracking-wider">Categories</h3>
             <div className="space-y-2">
-              {allCategories.map((item) => (
+              {categories.map((item) => (
                 <button 
                   key={item} 
                   className="block text-gray-600 text-sm hover:text-red-500 w-full text-left py-1 hover:translate-x-1 transition-transform duration-200" 

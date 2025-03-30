@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { ProductCard } from '../components/product';
-import Navbar from '../components/navbar';
-import Footer from '../components/footer';
-import { Advert } from '../components/advert';
 import { CheckCircle, Expand, Eye, ShoppingCart, X, ChevronLeft, ChevronRight, Plus, Info } from 'lucide-react';
 import { Heart } from 'lucide-react';
 import { FlashSale } from '../components/flash';
@@ -409,7 +406,7 @@ const ProductPage = () => {
               {product?.categories.map((category, index) => (
                 <span key={index} className="bg-gray-300 px-2 py-1 rounded">{category}</span>
               ))}
-            </div>  
+            </div>
             <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
             
             <div className="flex items-center gap-2 mb-2">

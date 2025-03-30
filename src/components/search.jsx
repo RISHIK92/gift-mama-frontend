@@ -21,13 +21,13 @@ export const Search = ({ placeholder, setNavCategory }) => {
   const navigate = useNavigate();
   
   // Get data from custom hooks
-  const { allCategories, allOccasions, allRecipients, loading: categoriesLoading } = useAllCategories();
+  const { allOccasions, allRecipients, categories, loading: categoriesLoading } = useAllCategories();
   const { products, loading: productsLoading } = useProducts();
 
   // Create initial suggestions based on the hooks data
   const getInitialSuggestions = () => {
     return {
-      categories: allCategories.slice(0, 4),
+      categories: categories.slice(0, 4),
       products: products.slice(0, 4).map(product => ({
         id: product.id,
         name: product.title,
@@ -89,7 +89,7 @@ export const Search = ({ placeholder, setNavCategory }) => {
       const query = searchQuery.toLowerCase();
       
       setSearchResults({
-        categories: allCategories.filter(item => 
+        categories: categories.filter(item => 
           item.toLowerCase().includes(query)
         ).slice(0, 4),
         products: products

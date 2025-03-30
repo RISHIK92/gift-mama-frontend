@@ -10,6 +10,7 @@ import { BACKEND_URL } from '../Url';
 export const Cart = () => {
   const [cart, setCart] = useState({ items: [], summary: { subtotal: 0, discount: 0, total: 0, deliveryFee: 200, tax: 0 } });
   const [useWallet, setUseWallet] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState({
@@ -21,9 +22,48 @@ export const Cart = () => {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const navigate = useNavigate();
   
+  // Calculate the final amount considering wallet balance
+  const calculateFinalAmount = () => {
+    const cartTotal = cart.summary.total + cart.summary.deliveryFee + cart.summary.tax;
+    if (useWallet) {
+      return Math.max(cartTotal - walletBalance, 0);
+    }
+    return cartTotal;
+  };
+  
   useEffect(() => {
     fetchCart();
+    fetchWalletBalance();
   }, []);
+  
+  // Fetch wallet balance
+  const fetchWalletBalance = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      
+      const response = await fetch(`${BACKEND_URL}wallet/balance`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch wallet balance');
+      }
+      
+      setWalletBalance(data.balance);
+    } catch (error) {
+      console.error('Error fetching wallet balance:', error);
+      setError(error.message);
+    }
+  };
   
   const fetchCart = async () => {
     try {
@@ -58,7 +98,6 @@ export const Cart = () => {
   };
   
   const updateQuantity = async (e, itemId, newQuantity) => {
-    // Stop propagation to prevent navigation
     e.stopPropagation();
     
     try {
@@ -97,7 +136,6 @@ export const Cart = () => {
   };
   
   const removeItem = async (e, itemId) => {
-    // Stop propagation to prevent navigation
     e.stopPropagation();
     
     try {
@@ -154,8 +192,8 @@ export const Cart = () => {
         throw new Error(data.message || 'Invalid coupon code');
       }
       
-      fetchCart(); // Refresh cart with applied coupon
-      setCouponCode(''); // Clear coupon input
+      fetchCart();
+      setCouponCode('');
     } catch (error) {
       console.error('Error applying coupon:', error);
       setCouponError(error.message);
@@ -165,21 +203,10 @@ export const Cart = () => {
     }
   };
   
-  const handleCheckout = () => {
-    setCheckoutLoading(true);
-    // Simulate API delay
-    setTimeout(() => {
-      setCheckoutLoading(false);
-      navigate('/checkout');
-    }, 800);
-  };
-  
-  // Navigate to product detail
   const navigateToProduct = (productName) => {
     navigate(`/product/${productName}`);
   };
   
-  // Loading skeleton for cart items
   const CartItemSkeleton = () => (
     <div className="flex mb-6 pb-4 border-b border-gray-200 animate-pulse">
       <div className="w-[140px] h-[140px] rounded-md bg-gray-300 mr-3"></div>
@@ -194,13 +221,120 @@ export const Cart = () => {
     </div>
   );
   
-  // Error toast notification
   const ErrorToast = ({ message }) => (
     <div className="fixed top-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center animate-bounce">
       <AlertCircle className="mr-2 h-5 w-5" />
       <span>{message}</span>
     </div>
   );
+
+  const initializeRazorpayCheckout = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const finalAmount = calculateFinalAmount();
+      
+      const response = await fetch(`${BACKEND_URL}create-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: finalAmount,
+          currency: 'INR',
+          receipt: `order_${Date.now()}`,
+          useWallet: useWallet,
+          walletAmount: useWallet ? Math.min(walletBalance, cart.summary.total + cart.summary.deliveryFee + cart.summary.tax) : 0
+        })
+      });
+
+      const orderData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(orderData.message || 'Failed to create order');
+      }
+
+      const options = {
+        key: "rzp_test_IiBhDWqxB82lQj",
+        amount: orderData.amount * 100,
+        currency: orderData.currency,
+        name: 'Your Company Name',
+        description: 'Cart Checkout',
+        order_id: orderData.id,
+        handler: async function (response) {
+          try {
+            const verifyResponse = await fetch(`${BACKEND_URL}verify-payment`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                useWallet: useWallet,
+                walletAmount: useWallet ? Math.min(walletBalance, cart.summary.total + cart.summary.deliveryFee + cart.summary.tax) : 0
+              })
+            });
+
+            const verifyData = await verifyResponse.json();
+
+            if (verifyData.status === 'success') {
+              navigate('/order-confirmation');
+            } else {
+              setError('Payment verification failed');
+            }
+          } catch (error) {
+            console.error('Payment verification error:', error);
+            setError('Failed to verify payment');
+          }
+        },
+        prefill: {
+          name: 'Customer Name',
+          email: 'customer@example.com',
+          contact: '+91XXXXXXXXXX'
+        },
+        notes: {
+          address: 'Delivery Address'
+        },
+        theme: {
+          color: '#FF2A2A'
+        }
+      };
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => {
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      };
+      script.onerror = () => {
+        setError('Failed to load payment gateway');
+      };
+      document.body.appendChild(script);
+
+    } catch (error) {
+      console.error('Checkout error:', error);
+      setError(error.message);
+      setCheckoutLoading(false);
+    }
+    setTimeout(() => {
+      setCheckoutLoading(false);
+    }, 1500);
+  };
+
+  const handleCheckout = () => {
+    setCheckoutLoading(true);
+    
+    if (cart.items.length === 0) {
+      setError('Your cart is empty');
+      setCheckoutLoading(false);
+      return;
+    }
+
+    initializeRazorpayCheckout();
+  };
   
   if (loading) {
     return (
@@ -222,7 +356,7 @@ export const Cart = () => {
       </div>
     );
   }
-  
+
   return (
     <>
       {error && <ErrorToast message={error} />}
@@ -257,7 +391,6 @@ export const Cart = () => {
                 
                 return (
                   <div key={item.id} className={`flex mb-6 pb-4 border-b border-gray-200 ${isRemoving ? 'opacity-50 animate-pulse' : ''}`}>
-                    {/* Product Image - Clickable */}
                     <div 
                       className="w-[140px] h-[140px] rounded-md bg-gray-200 overflow-hidden mr-3 cursor-pointer"
                       onClick={() => navigateToProduct(product.name)}
@@ -356,6 +489,19 @@ export const Cart = () => {
                   <span className="text-red-500 font-bold">₹{cart.summary.total + cart.summary.deliveryFee + cart.summary.tax}</span>
                 </div>
                 
+                {useWallet && (
+                  <>
+                    <div className="flex justify-between mb-2">
+                      <span>Wallet Credit</span>
+                      <span className="text-green-500">-₹{Math.min(walletBalance, cart.summary.total + cart.summary.deliveryFee + cart.summary.tax)}</span>
+                    </div>
+                    <div className="flex justify-between mb-4 font-bold">
+                      <span>Amount to Pay</span>
+                      <span className="text-red-500">₹{calculateFinalAmount()}</span>
+                    </div>
+                  </>
+                )}
+                
                 <div className="flex mb-6">
                   <input
                     type="text"
@@ -395,7 +541,7 @@ export const Cart = () => {
                 <div className="mb-6">
                   <div className="flex justify-between mb-4">
                     <span>Wallet Balance</span>
-                    <span className="text-red-500 font-bold">₹920</span>
+                    <span className="text-red-500 font-bold">₹{walletBalance.toFixed(2)}</span>
                   </div>
                   
                   <div className="flex items-center gap-2 mb-4">
@@ -405,12 +551,24 @@ export const Cart = () => {
                       checked={useWallet}
                       onChange={() => setUseWallet(!useWallet)}
                       className="h-4 w-4 text-red-500"
+                      disabled={walletBalance === 0}
                     />
-                    <label htmlFor="wallet" className="text-sm">Credit from wallet?</label>
+                    <label 
+                      htmlFor="wallet" 
+                      className={`text-sm ${walletBalance === 0 ? 'text-gray-400' : ''}`}
+                    >
+                      Credit from wallet? 
+                      {walletBalance === 0 && " (Insufficient Balance)"}
+                    </label>
                   </div>
+                  
+                  {useWallet && walletBalance < (cart.summary.total + cart.summary.deliveryFee + cart.summary.tax) && (
+                    <div className="text-yellow-600 text-sm mb-4">
+                      Wallet balance will be used partially. Remaining amount will be paid via payment gateway.
+                    </div>
+                  )}
                 </div>
                 
-                {/* Checkout Button */}
                 <button 
                   className={`w-full bg-[#FF2A2A] text-white py-3 rounded-2xl font-light text-sm relative overflow-hidden ${checkoutLoading ? 'cursor-not-allowed' : ''}`}
                   onClick={handleCheckout}
@@ -424,7 +582,7 @@ export const Cart = () => {
                       </div>
                     </>
                   ) : (
-                    "Proceed to Payment"
+                    `Proceed to Payment (₹${calculateFinalAmount()})`
                   )}
                 </button>
               </div>

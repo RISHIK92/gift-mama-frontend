@@ -13,6 +13,9 @@ import { Navbar } from './components/navbar';
 import GiftShopPage from './components/allProducts';
 import { Footer } from './components/footer';
 import { NavbarItem } from './components/navbar-item';
+import { OrderHistory } from './pages/orderHistory';
+import OrderDetail from './pages/orderDetail';
+import Wallet from './pages/wallet'
 
 const Layout = ({ children, setNavCategory }) => {
   return (
@@ -46,6 +49,9 @@ function App() {
                 <Route path="/category/:navCategory" element={<NavbarItem navCategory={navCategory} />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path='/orders' element={<OrderHistory />} />
+                <Route path="/order/:orderId" element={<OrderDetail />}/>
+                <Route path='wallet' element={<Wallet />}/>
               </Routes>
             </Layout>
           }

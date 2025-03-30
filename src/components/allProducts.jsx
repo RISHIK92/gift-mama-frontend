@@ -26,7 +26,7 @@ const Search = ({ type = "text", placeholder, value, onChange }) => {
 };
 
 const CategorySidebar = ({ selectedCategory, setSelectedCategory, selectedOccasion, setSelectedOccasion }) => {
-  const { allCategories, allOccasions, loading, error } = useAllCategories();
+  const { allOccasions,categories, loading, error } = useAllCategories();
 
   if (loading) return <div className="w-60 flex-shrink-0 p-4">Loading categories...</div>;
   if (error) return <div className="w-60 flex-shrink-0 p-4">Error loading categories: {error}</div>;
@@ -44,7 +44,7 @@ const CategorySidebar = ({ selectedCategory, setSelectedCategory, selectedOccasi
               All Categories
             </button>
           </li>
-          {allCategories.map((category, index) => (
+          {categories.map((category, index) => (
             <li key={index}>
               <button
                 className={`text-sm hover:text-red-500 ${selectedCategory === category ? "text-red-500 font-bold" : ""}`}

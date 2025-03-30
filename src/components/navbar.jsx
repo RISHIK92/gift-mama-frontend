@@ -5,7 +5,6 @@ import axios from 'axios';
 import { BACKEND_URL } from '../Url';
 import { useNavigate } from 'react-router-dom';
 import useCategory from '../hooks/useCategory';
-import useAllCategories from '../hooks/useAllCategories';
 import CategoryDropdown from './categoryDropdown';
 
 const LocationModal = ({ onClose, onAllowLocation, onManualEntry }) => {
