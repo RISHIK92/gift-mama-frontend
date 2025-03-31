@@ -16,6 +16,7 @@ import { NavbarItem } from './components/navbar-item';
 import { OrderHistory } from './pages/orderHistory';
 import OrderDetail from './pages/orderDetail';
 import Wallet from './pages/wallet'
+import { OrderConfirmation } from './pages/orderConfirmation';
 
 const Layout = ({ children, setNavCategory }) => {
   return (
@@ -51,6 +52,7 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path='/orders' element={<OrderHistory />} />
                 <Route path="/order/:orderId" element={<OrderDetail />}/>
+                <Route path="order-confirmation" element={<OrderConfirmation />}/>
                 <Route path='wallet' element={<Wallet />}/>
               </Routes>
             </Layout>
