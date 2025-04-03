@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/navbar';
-import Footer from '../components/footer';
-import { NewlyArrived, productData } from '../components/arrived';
-import { ProductCard } from '../components/product';
 import { MapPin, ShoppingCart, Trash2, AlertCircle, RefreshCw } from 'lucide-react';
 import { BACKEND_URL } from '../Url';
+import AddressModal from '../components/addressModel';
+import CouponRecommendations from '../utils/couponRecommendation';
 
 export const Cart = () => {
   const [cart, setCart] = useState({ items: [], summary: { subtotal: 0, discount: 0, total: 0, deliveryFee: 200, tax: 0 } });
@@ -20,6 +18,9 @@ export const Cart = () => {
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
   const navigate = useNavigate();
   
   // Calculate the final amount considering wallet balance
@@ -33,10 +34,44 @@ export const Cart = () => {
   
   useEffect(() => {
     fetchCart();
+    fetchAppliedCoupon();
     fetchWalletBalance();
+    fetchDefaultAddress();
   }, []);
   
-  // Fetch wallet balance
+  // Fetch default address
+  const fetchDefaultAddress = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      
+      const response = await fetch(`${BACKEND_URL}user/default-address`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.status === 404) {
+        // No default address found, that's okay
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch default address');
+      }
+      
+      const data = await response.json();
+      setSelectedAddress(data);
+    } catch (error) {
+      console.error('Error fetching default address:', error);
+      // We don't want to show an error for this
+    }
+  };
+
   const fetchWalletBalance = async () => {
     try {
       const token = localStorage.getItem('authToken');
@@ -64,6 +99,37 @@ export const Cart = () => {
       setError(error.message);
     }
   };
+
+const fetchAppliedCoupon = async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    
+    const response = await fetch(`${BACKEND_URL}cart/coupon`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (response.status === 404) {
+      setAppliedCoupon(null);
+      return;
+    }
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch applied coupon');
+    }
+    
+    const data = await response.json();
+    setAppliedCoupon(data.coupon);
+  } catch (error) {
+    console.error('Error fetching applied coupon:', error);
+  }
+};
   
   const fetchCart = async () => {
     try {
@@ -168,6 +234,64 @@ export const Cart = () => {
       setActionLoading({ type: null, itemId: null });
     }
   };
+
+  const handleApplyCouponFromRecommendation = async (code) => {
+    if (!code) {
+      // Handle coupon removal
+      try {
+        const token = localStorage.getItem('authToken');
+        
+        const response = await fetch(`${BACKEND_URL}cart/coupon`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Failed to remove coupon');
+        }
+        
+        setAppliedCoupon(null);
+        fetchCart();
+      } catch (error) {
+        console.error('Error removing coupon:', error);
+        setError(`Failed to remove coupon: ${error.message}`);
+        setTimeout(() => setError(null), 3000);
+      }
+      return;
+    }
+    
+    // Apply the coupon code
+    try {
+      setCouponError(null);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${BACKEND_URL}cart/coupon`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ code })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Invalid coupon code');
+      }
+      
+      setAppliedCoupon(data.coupon);
+      fetchCart();
+      setCouponCode('');
+    } catch (error) {
+      console.error('Error applying coupon:', error);
+      setCouponError(error.message);
+      setTimeout(() => setCouponError(null), 3000);
+    }
+  };
   
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -192,6 +316,8 @@ export const Cart = () => {
         throw new Error(data.message || 'Invalid coupon code');
       }
       
+      setAppliedCoupon(data.coupon);
+      
       fetchCart();
       setCouponCode('');
     } catch (error) {
@@ -205,6 +331,10 @@ export const Cart = () => {
   
   const navigateToProduct = (productName) => {
     navigate(`/product/${productName}`);
+  };
+  
+  const handleAddressSelect = (address) => {
+    setSelectedAddress(address);
   };
   
   const CartItemSkeleton = () => (
@@ -230,6 +360,11 @@ export const Cart = () => {
 
   const initializeRazorpayCheckout = async () => {
     try {
+      if (!selectedAddress) {
+        setError('Please select a delivery address');
+        return;
+      }
+      
       const token = localStorage.getItem('authToken');
       const finalAmount = calculateFinalAmount();
       
@@ -244,7 +379,18 @@ export const Cart = () => {
           currency: 'INR',
           receipt: `order_${Date.now()}`,
           useWallet: useWallet,
-          walletAmount: useWallet ? Math.min(walletBalance, cart.summary.total + cart.summary.deliveryFee + cart.summary.tax) : 0
+          walletAmount: useWallet ? Math.min(walletBalance, cart.summary.total + cart.summary.deliveryFee + cart.summary.tax) : 0,
+          shippingAddress: {
+            name: selectedAddress.name,
+            line1: selectedAddress.line1,
+            line2: selectedAddress.line2 || '',
+            city: selectedAddress.city,
+            state: selectedAddress.state,
+            postalCode: selectedAddress.postalCode,
+            country: selectedAddress.country,
+            phone: selectedAddress.phone
+          },
+          notes: `Order placed on ${new Date().toLocaleString()}` // Send as string instead of object
         })
       });
 
@@ -291,12 +437,12 @@ export const Cart = () => {
           }
         },
         prefill: {
-          name: 'Customer Name',
+          name: selectedAddress.name,
           email: 'customer@example.com',
-          contact: '+91XXXXXXXXXX'
+          contact: selectedAddress.phone
         },
         notes: {
-          address: 'Delivery Address'
+          address: `${selectedAddress.line1}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.postalCode}`
         },
         theme: {
           color: '#FF2A2A'
@@ -332,6 +478,12 @@ export const Cart = () => {
       setCheckoutLoading(false);
       return;
     }
+    
+    if (!selectedAddress) {
+      setIsAddressModalOpen(true);
+      setCheckoutLoading(false);
+      return;
+    }
 
     initializeRazorpayCheckout();
   };
@@ -361,6 +513,12 @@ export const Cart = () => {
     <>
       {error && <ErrorToast message={error} />}
       {couponError && <ErrorToast message={couponError} />}
+      
+      <AddressModal 
+        isOpen={isAddressModalOpen} 
+        onClose={() => setIsAddressModalOpen(false)} 
+        onAddressSelect={handleAddressSelect}
+      />
       
       <div className="p-4 max-w-6xl mx-auto">
         <h1 className="text-2xl font-medium flex items-center mb-6 italic">
@@ -405,193 +563,234 @@ export const Cart = () => {
                         }}
                       />
                     </div>
-                    
                     <div className="flex-1">
-                      <h3 
-                        className="font-bold text-lg cursor-pointer hover:text-red-500 transition-colors"
+                      <div 
+                        className="font-medium text-lg mb-1 cursor-pointer hover:text-red-500"
                         onClick={() => navigateToProduct(product.name)}
                       >
                         {product.name}
-                      </h3>
+                      </div>
                       
-                      <p className="text-red-500 text-sm">
-                        {product.categories.join(' / ')}
-                      </p>
+                      <div className="text-sm text-gray-500">
+                        {product.color && `Color: ${product.color}`}
+                        {product.size && product.color && ` | `}
+                        {product.size && `Size: ${product.size}`}
+                      </div>
                       
-                      <div className="flex justify-between items-center mt-4">
-                        <div className="flex items-center gap-4">
-                          <div className={`flex items-center border border-gray-300 rounded-full ${isUpdating ? 'border-red-300 animate-pulse' : ''}`}>
-                            <button
-                              onClick={(e) => updateQuantity(e, item.id, item.quantity - 1)}
-                              className="w-8 h-8 flex mb-1 items-center justify-center"
-                              disabled={item.quantity <= 1 || isUpdating || isRemoving}
-                            >
-                              −
-                            </button>
-                            <span className="w-8 text-center">
-                              {isUpdating ? (
-                                <RefreshCw className="h-4 w-4 mx-auto animate-spin" />
-                              ) : (
-                                item.quantity
-                              )}
-                            </span>
-                            <button
-                              onClick={(e) => updateQuantity(e, item.id, item.quantity + 1)}
-                              className="w-8 h-8 flex mb-1 items-center justify-center"
-                              disabled={isUpdating || isRemoving}
-                            >
-                              +
-                            </button>
-                          </div>
+                      <div className="mt-4 flex justify-between items-center">
+                        <div className="flex items-center border border-gray-300 rounded-full">
                           <button 
-                            className="text-red-500"
-                            onClick={(e) => removeItem(e, item.id)}
-                            disabled={isUpdating || isRemoving}
+                            className="w-8 h-8 flex items-center justify-center text-gray-500"
+                            onClick={(e) => {
+                              if (item.quantity > 1) {
+                                updateQuantity(e, item.id, item.quantity - 1);
+                              }
+                            }}
+                            disabled={item.quantity <= 1 || isUpdating}
                           >
-                            {isRemoving ? (
-                              <RefreshCw className="h-5 w-5 animate-spin" />
+                            -
+                          </button>
+                          <span className="w-8 h-8 flex items-center justify-center">
+                            {isUpdating ? (
+                              <RefreshCw className="h-4 w-4 animate-spin text-red-500" />
                             ) : (
-                              <Trash2 className="h-5 w-5" />
+                              item.quantity
                             )}
+                          </span>
+                          <button 
+                            className="w-8 h-8 flex items-center justify-center text-gray-500"
+                            onClick={(e) => updateQuantity(e, item.id, item.quantity + 1)}
+                            disabled={isUpdating}
+                          >
+                            +
                           </button>
                         </div>
-                        <span className="text-red-500 font-bold text-xl">₹{itemTotal}</span>
+                        
+                        <div className="flex flex-col items-end">
+                          <div className="flex items-center">
+                            {product.discountedPrice && (
+                              <span className="text-gray-500 line-through text-sm mr-2">
+                                ₹{(price * item.quantity).toFixed(2)}
+                              </span>
+                            )}
+                            <span className="font-medium">
+                              ₹{itemTotal.toFixed(2)}
+                            </span>
+                          </div>
+                          
+                          {itemDiscount > 0 && (
+                            <span className="text-green-600 text-sm">
+                              You save ₹{itemDiscount.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="mt-3 flex justify-end">
+                        <button 
+                          onClick={(e) => removeItem(e, item.id)}
+                          className="text-red-500 text-sm flex items-center"
+                          disabled={isRemoving}
+                        >
+                          {isRemoving ? (
+                            <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 mr-1" />
+                          )}
+                          Remove
+                        </button>
                       </div>
                     </div>
                   </div>
                 );
               })}
               
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between">
-                  <span>Discount</span>
-                  <span>-₹{cart.summary.discount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Delivery and Handling Fee</span>
-                  <span>₹{cart.summary.deliveryFee}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>GSTIN</span>
-                  <span>₹{cart.summary.tax}</span>
-                </div>
-                <div className="flex justify-between font-bold pt-3 border-t border-gray-200">
-                  <span>Sub Total</span>
-                  <span>₹{cart.summary.total + cart.summary.deliveryFee + cart.summary.tax}</span>
+              <div className="mt-4 py-4 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 mr-4">
+                    <input 
+                      type="text" 
+                      placeholder="Enter coupon code" 
+                      className="w-full border border-gray-300 rounded-md p-2"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                    />
+                  </div>
+                  <button 
+                    className="bg-red-500 text-white px-4 py-2 rounded-md flex items-center"
+                    onClick={applyCoupon}
+                    disabled={actionLoading.type === 'apply' || !couponCode.trim()}
+                  >
+                    {actionLoading.type === 'apply' ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Applying...
+                      </>
+                    ) : 'Apply Coupon'}
+                  </button>
                 </div>
               </div>
             </div>
             
             <div className="w-full lg:w-80">
-              <div className="mb-4">
-                <div className="flex justify-between mb-4">
-                  <span>Sub Total</span>
-                  <span className="text-red-500 font-bold">₹{cart.summary.total + cart.summary.deliveryFee + cart.summary.tax}</span>
-                </div>
-                
-                {useWallet && (
-                  <>
-                    <div className="flex justify-between mb-2">
-                      <span>Wallet Credit</span>
-                      <span className="text-green-500">-₹{Math.min(walletBalance, cart.summary.total + cart.summary.deliveryFee + cart.summary.tax)}</span>
+              <div className="border border-gray-200 rounded-lg">
+                {selectedAddress ? (
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-lg font-medium">Delivery Address</h3>
+                      <button 
+                        onClick={() => setIsAddressModalOpen(true)}
+                        className="text-red-500 text-sm"
+                      >
+                        Change
+                      </button>
                     </div>
-                    <div className="flex justify-between mb-4 font-bold">
-                      <span>Amount to Pay</span>
-                      <span className="text-red-500">₹{calculateFinalAmount()}</span>
+                    <div className="flex items-start">
+                      <MapPin className="h-5 w-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">{selectedAddress.name}</p>
+                        <p className="text-sm text-gray-600">
+                          {selectedAddress.line1}
+                          {selectedAddress.line2 && `, ${selectedAddress.line2}`}
+                          {`, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.postalCode}`}
+                        </p>
+                        <p className="text-sm text-gray-600">{selectedAddress.phone}</p>
+                      </div>
                     </div>
-                  </>
+                  </div>
+                ) : (
+                  <div className="p-4 border-b border-gray-200">
+                    <button 
+                      onClick={() => setIsAddressModalOpen(true)}
+                      className="w-full bg-gray-100 text-gray-800 font-medium p-3 rounded-md flex items-center justify-center"
+                    >
+                      <MapPin className="h-5 w-5 mr-2" />
+                      Add Delivery Address
+                    </button>
+                  </div>
                 )}
-                
-                <div className="flex mb-6">
-                  <input
-                    type="text"
-                    placeholder="Have any coupon codes?"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value)}
-                    className={`flex-1 border ${couponError ? 'border-red-500' : 'border-gray-300'} rounded-l-md px-3 py-2 text-sm`}
-                    disabled={actionLoading.type === 'apply'}
+
+              <CouponRecommendations
+                    onApplyCoupon={handleApplyCouponFromRecommendation}
+                    currentCartTotal={cart.summary.subtotal}
+                    appliedCoupon={appliedCoupon}
                   />
+                
+                <div className="p-4">
+                  <h3 className="text-lg font-medium mb-3">Order Summary</h3>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between">
+                      <span>Subtotal ({cart.items.length} items)</span>
+                      <span>₹{cart.summary.subtotal.toFixed(2)}</span>
+                    </div>
+                    {cart.summary.discount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Discount</span>
+                        <span>-₹{cart.summary.discount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span>Delivery Fee</span>
+                      <span>₹{cart.summary.deliveryFee.toFixed(2)}</span>
+                    </div>
+                    {cart.summary.tax > 0 && (
+                      <div className="flex justify-between">
+                        <span>Tax</span>
+                        <span>₹{cart.summary.tax.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-medium pt-2 border-t border-gray-200">
+                      <span>Total</span>
+                      <span>₹{(cart.summary.total + cart.summary.deliveryFee + cart.summary.tax).toFixed(2)}</span>
+                    </div>
+                  </div>
+                  
+                  {walletBalance > 0 && (
+                    <div className="mb-4 p-3 bg-gray-100 rounded-md">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center">
+                          <input 
+                            type="checkbox" 
+                            id="useWallet" 
+                            checked={useWallet}
+                            onChange={() => setUseWallet(!useWallet)}
+                            className="mr-2"
+                          />
+                          <label htmlFor="useWallet" className="text-sm">Use Wallet Balance</label>
+                        </div>
+                        <span className="text-sm font-medium">₹{walletBalance.toFixed(2)}</span>
+                      </div>
+                      {useWallet && (
+                        <div className="text-sm text-gray-600">
+                          <div className="flex justify-between">
+                            <span>Amount to be paid</span>
+                            <span className="font-medium">₹{calculateFinalAmount().toFixed(2)}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   <button 
-                    className={`bg-white border ${couponError ? 'border-red-500' : 'border-gray-300'} border-l-0 rounded-r-md px-4 text-red-500 font-bold text-sm transition-all`}
-                    onClick={applyCoupon}
-                    disabled={actionLoading.type === 'apply' || !couponCode.trim()}
+                    onClick={handleCheckout}
+                    className="w-full bg-red-500 text-white py-3 rounded-md font-medium flex items-center justify-center"
+                    disabled={cart.items.length === 0 || checkoutLoading}
                   >
-                    {actionLoading.type === 'apply' ? (
-                      <RefreshCw className="h-4 w-4 animate-spin mx-auto" />
+                    {checkoutLoading ? (
+                      <>
+                        <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                        Processing...
+                      </>
                     ) : (
-                      'APPLY'
+                      'Proceed to Payment'
                     )}
                   </button>
                 </div>
-                
-                <div className="bg-gray-100 p-4 rounded-md mb-6 relative">
-                  <div className="flex">
-                    <span className="mr-2"><MapPin /></span>
-                    <div>
-                      <p className="text-sm">Delivering to EditPointIndia,</p>
-                      <p className="text-sm">Door No.A3, Block, Street Number 1,</p>
-                      <p className="text-sm">Walker Town,</p>
-                      <p className="text-sm">Padmarao Nagar, Secunderabad,</p>
-                      <p className="text-sm">Telangana 500025</p>
-                    </div>
-                  </div>
-                  <p className="text-red-500 text-sm mt-2 ml-5 cursor-pointer" onClick={() => navigate('/profile')}>CHANGE ADDRESS</p>
-                </div>
-                
-                <div className="mb-6">
-                  <div className="flex justify-between mb-4">
-                    <span>Wallet Balance</span>
-                    <span className="text-red-500 font-bold">₹{walletBalance.toFixed(2)}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mb-4">
-                    <input
-                      type="checkbox"
-                      id="wallet"
-                      checked={useWallet}
-                      onChange={() => setUseWallet(!useWallet)}
-                      className="h-4 w-4 text-red-500"
-                      disabled={walletBalance === 0}
-                    />
-                    <label 
-                      htmlFor="wallet" 
-                      className={`text-sm ${walletBalance === 0 ? 'text-gray-400' : ''}`}
-                    >
-                      Credit from wallet? 
-                      {walletBalance === 0 && " (Insufficient Balance)"}
-                    </label>
-                  </div>
-                  
-                  {useWallet && walletBalance < (cart.summary.total + cart.summary.deliveryFee + cart.summary.tax) && (
-                    <div className="text-yellow-600 text-sm mb-4">
-                      Wallet balance will be used partially. Remaining amount will be paid via payment gateway.
-                    </div>
-                  )}
-                </div>
-                
-                <button 
-                  className={`w-full bg-[#FF2A2A] text-white py-3 rounded-2xl font-light text-sm relative overflow-hidden ${checkoutLoading ? 'cursor-not-allowed' : ''}`}
-                  onClick={handleCheckout}
-                  disabled={checkoutLoading}
-                >
-                  {checkoutLoading ? (
-                    <>
-                      <span className="opacity-0">Proceed to Payment</span>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <RefreshCw className="h-5 w-5 animate-spin" />
-                      </div>
-                    </>
-                  ) : (
-                    `Proceed to Payment (₹${calculateFinalAmount()})`
-                  )}
-                </button>
               </div>
             </div>
           </div>
         )}
-        
-        <div className="mt-20 relative left-0"> 
-        </div>
       </div>
     </>
   );

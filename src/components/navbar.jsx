@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { MapPin, ShoppingCart, ChevronDown, MapPinned, CircleUserRound, Wallet, ShoppingBag, Edit, Menu, X, Home, ChevronRight } from 'lucide-react';
+import { MapPin, ShoppingCart, ChevronDown, MapPinned, CircleUserRound, Wallet, ShoppingBag, Edit, Menu, X, Home, ChevronRight, BadgeIcon, Heart } from 'lucide-react';
 import { Search } from "./search";
 import axios from 'axios';
 import { BACKEND_URL } from '../Url';
@@ -32,6 +32,7 @@ const ProfileDropdown = ({ navigate, isMobile = false }) => {
 
   const menuItems = [
     { icon: <Wallet className="h-5 w-5" />, label: "Wallet", path: "/wallet" },
+    { icon: <Heart className='h-5 w-5' />, label: "Wishlist", path: "/wishlist"},
     { icon: <ShoppingBag className="h-5 w-5" />, label: "Orders", path: "/orders" },
     { icon: <Edit className="h-5 w-5" />, label: "Edit Profile", path: "/profile" }
   ];
@@ -445,7 +446,7 @@ export const Navbar = ({setNavCategory}) => {
           <img 
             src="https://res.cloudinary.com/dvweoxpun/image/upload/v1740154234/photomama1_chtuu9.png" 
             alt="Logo" 
-            className="h-10 w-28 lg:h-[3.28rem] lg:w-36 object-contain" 
+            className="h-10 w-28 pt-2 lg:pt-0 lg:h-[3.28rem] lg:w-36 object-contain" 
             style={{ minWidth: '9rem', minHeight: '3.28rem' }}
           />
         </div>
@@ -469,7 +470,7 @@ export const Navbar = ({setNavCategory}) => {
         </div>
 
         <div className="flex items-center ml-auto lg:mx-32">
-          <div className="relative cursor-pointer mr-4 lg:mr-0" onClick={() => navigate('/cart')}>
+          <div className="relative cursor-pointer pt-1 mr-4 lg:mr-0" onClick={() => navigate('/cart')}>
             <ShoppingCart className="h-6 w-6 text-gray-700" />
             <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
               {cartCount}

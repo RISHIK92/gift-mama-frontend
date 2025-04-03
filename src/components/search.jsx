@@ -54,10 +54,15 @@ export const Search = ({ placeholder, setNavCategory }) => {
   }, []);
 
   useEffect(() => {
-    // Debounced search function
+    // Debounced search function - Remove isDropdownOpen condition
     const debounceTimer = setTimeout(() => {
-      if (searchQuery.trim() && isDropdownOpen) {
+      if (searchQuery.trim()) {
+        // Open dropdown when typing and fetch results
+        setIsDropdownOpen(true);
         fetchSearchResults();
+      } else if (!searchQuery.trim() && isDropdownOpen) {
+        // Show initial suggestions when search is cleared but dropdown is open
+        setSearchResults(getInitialSuggestions());
       }
     }, 300);
 
@@ -88,6 +93,7 @@ export const Search = ({ placeholder, setNavCategory }) => {
       // Show filtered results from our hooks data if the API fails
       const query = searchQuery.toLowerCase();
       
+      // Ensure consistent data structure
       setSearchResults({
         categories: categories.filter(item => 
           item.toLowerCase().includes(query)
@@ -101,12 +107,18 @@ export const Search = ({ placeholder, setNavCategory }) => {
             price: product.price,
             image: product.image
           })),
-        occasions: allOccasions.filter(item => 
-          item.toLowerCase().includes(query)
-        ).slice(0, 4),
-        recipients: allRecipients.filter(item => 
-          item.toLowerCase().includes(query)
-        ).slice(0, 4)
+        occasions: allOccasions
+          .filter(item => 
+            (typeof item === 'object' ? item.occasions.toLowerCase() : item.toLowerCase()).includes(query)
+          )
+          .slice(0, 4)
+          .map(item => typeof item === 'object' ? item : { occasions: item }),
+        recipients: allRecipients
+          .filter(item => 
+            (typeof item === 'object' ? item.recipients.toLowerCase() : item.toLowerCase()).includes(query)
+          )
+          .slice(0, 4)
+          .map(item => typeof item === 'object' ? item : { recipients: item })
       });
     } finally {
       setIsLoading(false);
@@ -121,17 +133,34 @@ export const Search = ({ placeholder, setNavCategory }) => {
       if (!categoriesLoading && !productsLoading) {
         setSearchResults(getInitialSuggestions());
       }
+    } else {
+      // If there's already a query, fetch results
+      fetchSearchResults();
     }
   };
 
-  const handleItemClick = (type, item) => {
+  const handleItemClick = (type, item, navCategoryValue = null) => {
+    // Close the dropdown when any item is clicked
     setIsDropdownOpen(false);
-    setSearchQuery('');
-    
-    if (type === 'category' || type === 'occasion' || type === 'recipient') {
-      navigate(`/category/${item}`);
+
+    if (type === 'category') {
+      navigate(`/category/${encodeURIComponent(item)}`);
       if (setNavCategory) {
-        setNavCategory(item);
+        setNavCategory(navCategoryValue || item);
+      }
+    } else if (type === 'occasion') {
+      // Handle both object and string formats
+      const occasionName = typeof item === 'object' ? item.occasions : item;
+      navigate(`/occasions/${encodeURIComponent(occasionName)}`);
+      if (setNavCategory) {
+        setNavCategory(navCategoryValue || occasionName);
+      }
+    } else if (type === 'recipient') {
+      // Handle both object and string formats
+      const recipientName = typeof item === 'object' ? item.recipients : item;
+      navigate(`/recipients/${encodeURIComponent(recipientName)}`);
+      if (setNavCategory) {
+        setNavCategory(navCategoryValue || recipientName);
       }
     } else if (type === 'product') {
       // Use product name for navigation instead of ID
@@ -145,7 +174,7 @@ export const Search = ({ placeholder, setNavCategory }) => {
       e.preventDefault();
     }
     if (searchQuery.trim()) {
-      navigate(`/search?query=${searchQuery}`);
+      navigate(`/all`);
       setIsDropdownOpen(false);
     }
   };
@@ -250,7 +279,7 @@ export const Search = ({ placeholder, setNavCategory }) => {
                           className="px-3 py-2 text-sm bg-gray-50 rounded-md hover:bg-red-50 cursor-pointer transition-colors"
                           onClick={() => handleItemClick('occasion', occasion)}
                         >
-                          {occasion}
+                          {typeof occasion === 'object' ? occasion.occasions : occasion}
                         </div>
                       ))}
                     </div>
@@ -268,7 +297,7 @@ export const Search = ({ placeholder, setNavCategory }) => {
                           className="px-3 py-2 text-sm bg-gray-50 rounded-md hover:bg-red-50 cursor-pointer transition-colors"
                           onClick={() => handleItemClick('recipient', recipient)}
                         >
-                          {recipient}
+                          {typeof recipient === 'object' ? recipient.recipients : recipient}
                         </div>
                       ))}
                     </div>

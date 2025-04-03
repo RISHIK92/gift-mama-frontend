@@ -17,10 +17,15 @@ import { OrderHistory } from './pages/orderHistory';
 import OrderDetail from './pages/orderDetail';
 import Wallet from './pages/wallet'
 import { OrderConfirmation } from './pages/orderConfirmation';
+import { OccasionPage } from './pages/occasionPage';
+import { RecipientPage } from './pages/recipientPage';
+import HomeFlashSaleBanner from './components/test';
+import { Wishlist } from './pages/wishlist';
 
 const Layout = ({ children, setNavCategory }) => {
   return (
     <>
+      <HomeFlashSaleBanner />
       <Navbar setNavCategory={setNavCategory} />
       <main>{children}</main>
       <Footer />
@@ -47,8 +52,11 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/product/:productId" element={<ProductPage />} />
                 <Route path="/all" element={<GiftShopPage />} />
-                <Route path="/category/:navCategory" element={<NavbarItem navCategory={navCategory} />} />
+                <Route path="/category/:navCategory" element={<NavbarItem navCategory={navCategory}/>} />
+                <Route path="/occasions/:occasionName" element={<OccasionPage />} />
+                <Route path="/recipients/:recipientName" element={<RecipientPage />} />
                 <Route path="/cart" element={<Cart />} />
+                <Route path='/wishlist' element={<Wishlist />}/>
                 <Route path="/profile" element={<Profile />} />
                 <Route path='/orders' element={<OrderHistory />} />
                 <Route path="/order/:orderId" element={<OrderDetail />}/>

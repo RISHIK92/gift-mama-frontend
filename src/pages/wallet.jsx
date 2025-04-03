@@ -1,161 +1,178 @@
-import React, { useState, useEffect } from 'react';
-import toast, { Toaster } from 'react-hot-toast';
-import { 
-  Wallet as WalletIcon, 
-  ArrowUpRight, 
+import { useState, useEffect } from "react"
+import toast, { Toaster } from "react-hot-toast"
+import {
+  WalletIcon,
+  ArrowUpRight,
   ArrowDownRight,
-  CreditCard, 
+  CreditCard,
   IndianRupee,
   RefreshCw,
   AlertCircle,
-  X
-} from 'lucide-react';
-import { BACKEND_URL } from '../Url';
+  X,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
+import { BACKEND_URL } from "../Url"
 
 export default function Wallet() {
-  const [balance, setBalance] = useState(0);
-  const [transactions, setTransactions] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [addMoneyAmount, setAddMoneyAmount] = useState('');
-  const [isAddMoneyModalOpen, setIsAddMoneyModalOpen] = useState(false);
+  const [balance, setBalance] = useState(0)
+  const [transactions, setTransactions] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [addMoneyAmount, setAddMoneyAmount] = useState("")
+  const [isAddMoneyModalOpen, setIsAddMoneyModalOpen] = useState(false)
   const [pagination, setPagination] = useState({
     currentPage: 1,
-    totalPages: 1
-  });
+    totalPages: 1,
+  })
 
   const formatCurrency = (amount) => {
-    const safeAmount = typeof amount === 'number' ? amount : 0;
-    return safeAmount.toLocaleString('en-IN', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
-    });
-  };
+    const safeAmount = typeof amount === "number" ? amount : 0
+    return safeAmount.toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+  }
 
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
+    const script = document.createElement("script")
+    script.src = "https://checkout.razorpay.com/v1/checkout.js"
+    script.async = true
     script.onload = () => {
-      console.log("Razorpay script loaded successfully");
-    };
+      console.log("Razorpay script loaded successfully")
+    }
     script.onerror = () => {
-      console.error("Failed to load Razorpay script");
-      toast.error("Failed to load Razorpay. Please try again later.");
-    };
-    document.body.appendChild(script);
-  
+      console.error("Failed to load Razorpay script")
+      toast.error("Failed to load Razorpay. Please try again later.")
+    }
+    document.body.appendChild(script)
+
     return () => {
-      document.body.removeChild(script);
-    };
-  }, []); 
+      if (document.body.contains(script)) {
+        document.body.removeChild(script)
+      }
+    }
+  }, [])
 
   const renderTransactionIcon = (type) => {
-    return type === 'credit' 
-      ? <ArrowDownRight className="text-green-500 bg-green-50 rounded-full p-1.5 transition-transform group-hover:scale-110" size={28} />
-      : <ArrowUpRight className="text-red-500 bg-red-50 rounded-full p-1.5 transition-transform group-hover:scale-110" size={28} />;
-  };
+    return type === "credit" ? (
+      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100">
+        <ArrowDownRight className="text-emerald-600" size={20} />
+      </div>
+    ) : (
+      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-rose-100">
+        <ArrowUpRight className="text-rose-600" size={20} />
+      </div>
+    )
+  }
 
-  const fetchWalletData = async () => {
-    const token = localStorage.getItem('authToken')
-    setIsLoading(true);
-    setError(null);
+  const fetchWalletData = async (page = 1) => {
+    const token = localStorage.getItem("authToken")
+    setIsLoading(true)
+    setError(null)
     try {
       const [balanceResponse, transactionsResponse] = await Promise.all([
         fetch(`${BACKEND_URL}wallet/balance`, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` }
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${BACKEND_URL}wallet/transactions?page=1&limit=10`, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-      ]);
+        fetch(`${BACKEND_URL}wallet/transactions?page=${page}&limit=10`, {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ])
 
       if (!balanceResponse.ok || !transactionsResponse.ok) {
-        throw new Error('Failed to fetch wallet information');
+        throw new Error("Failed to fetch wallet information")
       }
 
-      const balanceData = await balanceResponse.json();
-      const transactionsData = await transactionsResponse.json();
+      const balanceData = await balanceResponse.json()
+      const transactionsData = await transactionsResponse.json()
 
-      setBalance(balanceData.balance || 0);
-      setTransactions(transactionsData.transactions || []);
+      setBalance(balanceData.balance || 0)
+      setTransactions(transactionsData.transactions || [])
       setPagination({
         currentPage: transactionsData.pagination.currentPage,
-        totalPages: transactionsData.pagination.totalPages
-      });
+        totalPages: transactionsData.pagination.totalPages,
+      })
     } catch (err) {
-      setError(err.message || 'Failed to fetch wallet information');
-      toast.error(err.message || 'Failed to fetch wallet information');
+      setError(err.message || "Failed to fetch wallet information")
+      toast.error(err.message || "Failed to fetch wallet information")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      fetchWalletData(newPage)
+    }
+  }
 
   const handleAddMoney = async () => {
-    const token = localStorage.getItem('authToken')
-    const amount = parseFloat(addMoneyAmount);
+    const token = localStorage.getItem("authToken")
+    const amount = Number.parseFloat(addMoneyAmount)
     if (isNaN(amount) || amount <= 0) {
-      toast.error('Please enter a valid amount');
-      return;
+      toast.error("Please enter a valid amount")
+      return
     }
 
     try {
       const response = await fetch(`${BACKEND_URL}wallet/add-money`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ amount })
-      });
+        body: JSON.stringify({ amount }),
+      })
 
       if (!response.ok) {
-        throw new Error('Failed to add money');
+        throw new Error("Failed to add money")
       }
 
-      const data = await response.json();
-      setBalance(data.newBalance || 0);
-      setAddMoneyAmount('');
-      setIsAddMoneyModalOpen(false);
-      toast.success('Money added successfully');
-      fetchWalletData();
+      const data = await response.json()
+      setBalance(data.newBalance || 0)
+      setAddMoneyAmount("")
+      setIsAddMoneyModalOpen(false)
+      toast.success("Money added successfully")
+      fetchWalletData()
     } catch (err) {
-      toast.error(err.message || 'Failed to add money');
+      toast.error(err.message || "Failed to add money")
     }
-  };
+  }
 
   const initiateRazorpayPayment = async () => {
     if (!window.Razorpay) {
-      toast.error("Razorpay is not loaded. Please refresh the page and try again.");
-      return;
+      toast.error("Razorpay is not loaded. Please refresh the page and try again.")
+      return
     }
-  
-    const token = localStorage.getItem('authToken');
-    const amount = parseFloat(addMoneyAmount);
-  
+
+    const token = localStorage.getItem("authToken")
+    const amount = Number.parseFloat(addMoneyAmount)
+
     if (isNaN(amount) || amount <= 0) {
-      toast.error('Please enter a valid amount');
-      return;
+      toast.error("Please enter a valid amount")
+      return
     }
-  
+
     try {
       const orderResponse = await fetch(`${BACKEND_URL}wallet/create-order`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ amount })
-      });
-  
+        body: JSON.stringify({ amount }),
+      })
+
       if (!orderResponse.ok) {
-        throw new Error('Failed to create payment order');
+        throw new Error("Failed to create payment order")
       }
-  
-      const orderData = await orderResponse.json();
-  
+
+      const orderData = await orderResponse.json()
+
       const options = {
         key: "rzp_test_IiBhDWqxB82lQj",
         amount: orderData.amount,
@@ -163,93 +180,110 @@ export default function Wallet() {
         name: "Your Company Name",
         description: "Wallet Top-up",
         order_id: orderData.id,
-        handler: async function (response) {
+        handler: async (response) => {
           try {
             const verifyResponse = await fetch(`${BACKEND_URL}wallet/verify-payment`, {
-              method: 'POST',
+              method: "POST",
               headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
               },
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature
-              })
-            });
-  
-            const verifyData = await verifyResponse.json();
-  
-            if (verifyData.status === 'success') {
-              toast.success('Payment successful');
-              setBalance(verifyData.newBalance);
-              setAddMoneyAmount('');
-              setIsAddMoneyModalOpen(false);
-              fetchWalletData();
-              pollWalletData();
+                razorpay_signature: response.razorpay_signature,
+              }),
+            })
+
+            const verifyData = await verifyResponse.json()
+
+            if (verifyData.status === "success") {
+              toast.success("Payment successful")
+              setBalance(verifyData.newBalance)
+              setAddMoneyAmount("")
+              setIsAddMoneyModalOpen(false)
+              fetchWalletData()
+              pollWalletData()
             } else {
-              toast.error('Payment verification failed');
+              toast.error("Payment verification failed")
             }
           } catch (err) {
-            toast.error('Payment verification error');
+            toast.error("Payment verification error")
           }
         },
-        theme: { color: "#F37254" }
-      };
-  
-      const razorpayWindow = new window.Razorpay(options);
-      razorpayWindow.open();
+        theme: { color: "#F37254" },
+      }
+
+      const razorpayWindow = new window.Razorpay(options)
+      razorpayWindow.open()
     } catch (err) {
-      toast.error(err.message || 'Payment initiation failed');
+      toast.error(err.message || "Payment initiation failed")
     }
-  };  
+  }
 
   useEffect(() => {
-    fetchWalletData();
-  }, []);
+    fetchWalletData()
+  }, [])
 
   const pollWalletData = () => {
     const interval = setInterval(() => {
-      fetchWalletData();
-    }, 5000); 
-  
-    setTimeout(() => clearInterval(interval), 30000);
-  };
+      fetchWalletData()
+    }, 5000)
+
+    setTimeout(() => clearInterval(interval), 30000)
+  }
 
   if (error) {
     return (
-      <div className="bg-gradient-to-br from-red-50 to-pink-50 min-h-screen flex items-center justify-center p-4">
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <AlertCircle className="mx-auto mb-4 text-red-500 animate-bounce" size={48} />
-          <p className="text-red-600 mb-6 font-medium">{error}</p>
-          <button 
-            onClick={fetchWalletData} 
-            className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-6 py-2 rounded-full hover:from-red-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 flex items-center justify-center mx-auto"
+          <div className="mb-6 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center">
+              <AlertCircle className="text-rose-600" size={32} />
+            </div>
+          </div>
+          <h3 className="text-xl font-semibold text-slate-800 mb-2">Something went wrong</h3>
+          <p className="text-slate-600 mb-6">{error}</p>
+          <button
+            onClick={fetchWalletData}
+            className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-6 py-3 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-300 flex items-center justify-center mx-auto"
           >
-            <RefreshCw className="mr-2 inline" size={16} /> Retry
+            <RefreshCw className="mr-2" size={18} /> Try Again
           </button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="bg-gradient-to-br from-red-50 to-pink-50 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-      <Toaster 
+    <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+      <Toaster
         position="top-right"
         toastOptions={{
           success: {
             style: {
-              background: '#4caf50',
-              color: 'white',
-              borderRadius: '10px',
+              background: "#10b981",
+              color: "white",
+              borderRadius: "12px",
+              padding: "16px",
+              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+            },
+            iconTheme: {
+              primary: "white",
+              secondary: "#10b981",
             },
           },
           error: {
             style: {
-              background: '#f44336',
-              color: 'white',
-              borderRadius: '10px',
+              background: "#ef4444",
+              color: "white",
+              borderRadius: "12px",
+              padding: "16px",
+              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+            },
+            iconTheme: {
+              primary: "white",
+              secondary: "#ef4444",
             },
           },
         }}
@@ -258,139 +292,207 @@ export default function Wallet() {
       {/* Add Money Modal */}
       {isAddMoneyModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-2xl shadow-2xl w-96 transform transition-all">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md transform transition-all animate-fadeIn">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">Add Money</h2>
-              <button 
+              <h2 className="text-2xl font-semibold text-slate-800">Add Money</h2>
+              <button
                 onClick={() => setIsAddMoneyModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-slate-400 hover:text-slate-600 transition-colors rounded-full p-1 hover:bg-slate-100"
               >
                 <X size={24} />
               </button>
             </div>
-            <div className="relative mb-6">
-              <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input 
-                type="number" 
-                placeholder="Enter amount" 
-                value={addMoneyAmount}
-                onChange={(e) => setAddMoneyAmount(e.target.value)}
-                className="w-full p-3 pl-12 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:outline-none transition-colors"
-                min="0"
-                step="0.01"
-              />
+
+            <div className="mb-8">
+              <label className="block text-sm font-medium text-slate-600 mb-2">Enter Amount</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <IndianRupee className="text-slate-400" size={20} />
+                </div>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  value={addMoneyAmount}
+                  onChange={(e) => setAddMoneyAmount(e.target.value)}
+                  className="w-full py-4 pl-12 pr-4 text-xl font-medium border-2 border-slate-200 rounded-xl focus:border-red-500 focus:ring focus:ring-red-200 focus:ring-opacity-50 focus:outline-none transition-colors"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+              <div className="flex gap-2 mt-4">
+                {[500, 1000, 2000, 5000].map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => setAddMoneyAmount(amount.toString())}
+                    className="flex-1 py-2 px-3 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors text-sm"
+                  >
+                    ₹{amount}
+                  </button>
+                ))}
+              </div>
             </div>
+
             <div className="flex gap-4">
-              <button 
+              <button
                 onClick={() => setIsAddMoneyModalOpen(false)}
-                className="flex-1 py-3 px-4 rounded-xl border-2 border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 px-4 rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors font-medium"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={initiateRazorpayPayment}
-                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600 transition-all transform hover:scale-105"
+                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600 transition-all font-medium"
               >
-                Proceed
+                Proceed to Pay
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="max-w-md mx-auto">
+      <div className="max-w-lg mx-auto">
         {/* Balance Card */}
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden mb-6 transform transition-all hover:scale-[1.01]">
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden mb-8 transform transition-all hover:shadow-2xl">
           <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-8">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-8">
               <div className="flex items-center">
-                <WalletIcon className="mr-2" size={28} />
+                <div className="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center mr-3">
+                  <WalletIcon className="text-white" size={24} />
+                </div>
                 <h2 className="text-xl font-semibold">My Wallet</h2>
               </div>
-              {isLoading && <RefreshCw className="animate-spin" size={20} />}
+              {isLoading ? (
+                <RefreshCw className="animate-spin" size={20} />
+              ) : (
+                <button
+                  onClick={fetchWalletData}
+                  className="w-8 h-8 rounded-full bg-white bg-opacity-20 flex items-center justify-center hover:bg-opacity-30 transition-all"
+                >
+                  <RefreshCw size={16} />
+                </button>
+              )}
             </div>
-            <p className="text-red-100 mb-2">Available Balance</p>
+            <p className="text-white text-opacity-80 mb-2 font-medium">Available Balance</p>
             <div className="flex items-center">
               <IndianRupee className="mr-1" size={28} />
-              <span className="text-5xl font-bold tracking-tight">
-                {formatCurrency(balance)}
-              </span>
+              <span className="text-5xl font-bold tracking-tight">{formatCurrency(balance)}</span>
             </div>
           </div>
 
           {/* Quick Actions */}
-          <div className="p-6 bg-gradient-to-b from-white to-red-50">
-            <button 
+          <div className="p-6">
+            <button
               onClick={() => setIsAddMoneyModalOpen(true)}
-              className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border border-red-100"
+              className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-red-50 to-pink-50 rounded-2xl hover:from-red-100 hover:to-pink-100 transition-all duration-300 border border-slate-200"
             >
               <CreditCard className="text-red-500" size={24} />
-              <span className="font-medium text-gray-800">Add Money</span>
+              <span className="font-medium text-slate-800">Add Money</span>
             </button>
           </div>
         </div>
 
         {/* Transactions Card */}
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden mb-8">
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-semibold text-gray-800">Recent Transactions</h3>
-              <button 
-                onClick={fetchWalletData}
-                disabled={isLoading}
-                className="text-sm text-red-500 hover:text-red-600 disabled:opacity-50 transition-colors flex items-center gap-2"
-              >
-                <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-                {isLoading ? 'Refreshing' : 'Refresh'}
-              </button>
+              <h3 className="text-xl font-semibold text-slate-800">Recent Transactions</h3>
+              <div className="flex items-center gap-2">
+                <Clock size={16} className="text-slate-400" />
+                <span className="text-sm text-slate-500">Last updated {new Date().toLocaleTimeString()}</span>
+              </div>
             </div>
 
-            {transactions.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500 mb-2">No transactions yet</p>
-                <p className="text-sm text-gray-400">Add money to get started</p>
+            {isLoading && transactions.length === 0 ? (
+              <div className="py-12 flex flex-col items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                  <RefreshCw className="animate-spin text-slate-400" size={24} />
+                </div>
+                <p className="text-slate-500">Loading transactions...</p>
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="py-12 flex flex-col items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                  <CreditCard className="text-slate-400" size={24} />
+                </div>
+                <h4 className="text-lg font-medium text-slate-700 mb-2">No transactions yet</h4>
+                <p className="text-slate-500 text-center max-w-xs">
+                  Add money to your wallet to get started with transactions
+                </p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {transactions.map(transaction => (
-                  transaction && (
-                    <div 
-                      key={transaction.id} 
-                      className="group flex items-center justify-between p-4 rounded-2xl hover:bg-red-50 transition-all duration-300"
-                    >
-                      <div className="flex items-center gap-4">
-                        {renderTransactionIcon(transaction.type)}
-                        <div>
-                          <p className="font-medium text-gray-800 mb-1">
-                            {transaction.description || 'Transaction'}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {transaction.createdAt 
-                              ? new Date(transaction.createdAt).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })
-                              : 'Date Unavailable'
-                            }
-                          </p>
+              <>
+                <div className="space-y-4 mb-6">
+                  {transactions.map(
+                    (transaction) =>
+                      transaction && (
+                        <div
+                          key={transaction.id}
+                          className="group flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 transition-all duration-300"
+                        >
+                          <div className="flex items-center gap-4">
+                            {renderTransactionIcon(transaction.type)}
+                            <div>
+                              <p className="font-medium text-slate-800 mb-1">
+                                {transaction.description || "Transaction"}
+                              </p>
+                              <p className="text-sm text-slate-500">
+                                {transaction.createdAt
+                                  ? new Date(transaction.createdAt).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })
+                                  : "Date Unavailable"}
+                              </p>
+                            </div>
+                          </div>
+                          <span
+                            className={`
+                          text-lg font-semibold
+                          ${transaction.type === "credit" ? "text-emerald-600" : "text-rose-600"}
+                        `}
+                          >
+                            {transaction.type === "credit" ? "+" : "-"}₹
+                            {transaction.amount ? formatCurrency(transaction.amount) : "0.00"}
+                          </span>
                         </div>
-                      </div>
-                      <span className={`
-                        text-lg font-semibold transition-all duration-300 group-hover:scale-110
-                        ${transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'}
-                      `}>
-                        {transaction.type === 'credit' ? '+' : '-'} 
-                        ₹{transaction.amount ? formatCurrency(transaction.amount) : '0.00'}
-                      </span>
+                      ),
+                  )}
+                </div>
+
+                {/* Pagination */}
+                {pagination.totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 pt-4 border-t border-slate-100">
+                    <button
+                      onClick={() => handlePageChange(pagination.currentPage - 1)}
+                      disabled={pagination.currentPage === 1}
+                      className="w-10 h-10 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+
+                    <div className="text-sm text-slate-600">
+                      Page {pagination.currentPage} of {pagination.totalPages}
                     </div>
-                  )
-                ))}
-              </div>
+
+                    <button
+                      onClick={() => handlePageChange(pagination.currentPage + 1)}
+                      disabled={pagination.currentPage === pagination.totalPages}
+                      className="w-10 h-10 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
+

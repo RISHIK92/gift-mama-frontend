@@ -5,6 +5,7 @@ import { NavbarItem } from "../components/navbar-item";
 export function Occasions() {
     return (
         <div>
+            <HomeFlashSaleBanner />
             <Navbar />
             <NavbarItem heading={"Occasions"} title1={"Occasional Gifts"} title2={"Occasional Gifts"}/>
             <Footer />

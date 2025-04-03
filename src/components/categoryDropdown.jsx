@@ -42,7 +42,7 @@ const CategoryDropdown = ({setNavCategory, navigate}) => {
     findMatchingProduct(selectedItem, selectedType) : null;
   
   return (
-    <div className="relative" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+    <div className="relative z-50" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
       <button className="px-4 py-2 text-gray-600 hover:text-red-500 font-medium flex items-center gap-1 transition-colors duration-200" onClick={() => navigate('/all')}>
         Categories
         <ChevronDown className="h-4 w-4 transition-transform duration-200" />
@@ -112,15 +112,15 @@ const CategoryDropdown = ({setNavCategory, navigate}) => {
             <div className="space-y-2">
               {allRecipients.map((item) => (
                 <button 
-                  key={item} 
+                  key={item.recipients} 
                   className="block text-gray-600 text-sm hover:text-red-500 w-full text-left py-1 hover:translate-x-1 transition-transform duration-200" 
                   onClick={() => {
-                    navigate(`/category/${item}`);
-                    setNavCategory(item);
+                    navigate(`/category/${item.recipients}`);
+                    setNavCategory(item.recipients);
                   }}
                   onMouseEnter={() => handleItemHover(item, 'recipient')}
                 >
-                  {item}
+                  {item.recipients}
                 </button>
               ))}
             </div>
@@ -131,15 +131,15 @@ const CategoryDropdown = ({setNavCategory, navigate}) => {
             <div className="space-y-2">
               {allOccasions.map((item) => (
                 <button 
-                  key={item} 
+                  key={item.occasions}
                   className="block text-gray-600 text-sm hover:text-red-500 w-full text-left py-1 hover:translate-x-1 transition-transform duration-200" 
                   onClick={() => {
-                    navigate(`/category/${item}`);
-                    setNavCategory(item);
+                    navigate(`/category/${item.occasions}`);
+                    setNavCategory(item.occasions);
                   }}
-                  onMouseEnter={() => handleItemHover(item, 'occasion')}
+                  onMouseEnter={() => handleItemHover(item.occasions, 'occasion')}
                 >
-                  {item}
+                  {item.occasions}
                 </button>
               ))}
             </div>

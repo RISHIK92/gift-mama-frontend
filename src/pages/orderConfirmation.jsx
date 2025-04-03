@@ -32,7 +32,7 @@ export const OrderConfirmation = () => {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch order details');
+        throw new Error(message || 'Failed to fetch order details');
       }
       
       setOrder(data);
@@ -109,7 +109,7 @@ export const OrderConfirmation = () => {
         </div>
         <h1 className="text-2xl font-medium mb-2">Order Confirmed!</h1>
         <p className="text-gray-600">
-          Your order #{order.data.orderId} has been placed successfully.
+          Your order #{order.orderNumber} has been placed successfully.
         </p>
         <p className="text-gray-600">
           A confirmation email has been sent to {order.customer?.email || 'your email address'}.
@@ -131,27 +131,27 @@ export const OrderConfirmation = () => {
         <div className="border-b border-gray-200 pb-4 mb-4">
           <div className="flex justify-between mb-2">
             <span>Order Number:</span>
-            <span className="font-medium">{order.data.orderNumber}</span>
+            <span className="font-medium">{order.orderNumber}</span>
           </div>
           <div className="flex justify-between mb-2">
             <span>Order Date:</span>
-            <span>{formatDate(order.data.date)}</span>
+            <span>{formatDate(order.createdAt)}</span>
           </div>
           <div className="flex justify-between mb-2">
             <span>Payment Method:</span>
-            <span>{order.data.payment.method || 'Online Payment'}</span>
+            <span>{order.paymentMethod || 'Online Payment'}</span>
           </div>
         </div>
         
         <div className="mb-4">
           <h3 className="font-medium mb-2">Items Ordered</h3>
-          {order.data.items.map((item, index) => (
+          {order.items.map((item, index) => (
             <div key={index} className="flex justify-between py-2 border-b border-gray-200 last:border-b-0">
               <div className="flex">
                 <span className="mr-2">{item.quantity}x</span>
                 <span>{item.product.name}</span>
               </div>
-              {/* <span>₹{(item.price * item.quantity).toFixed(2)}</span> */}
+              <span>₹{(item.price * item.quantity).toFixed(2)}</span>
             </div>
           ))}
         </div>
@@ -159,31 +159,31 @@ export const OrderConfirmation = () => {
         <div className="space-y-2 mb-4">
           <div className="flex justify-between">
             <span>Subtotal:</span>
-            <span>₹{order.data.summary?.subtotal.toFixed(2)}</span>
+            <span>₹{order?.subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
             <span>Delivery Fee:</span>
-            <span>₹{order.data.summary?.delivery.toFixed(2)}</span>
+            <span>₹{order?.deliveryFee.toFixed(2)}</span>
           </div>
           {order.discount > 0 && (
             <div className="flex justify-between">
               <span>Discount:</span>
-              <span className="text-green-500">-₹{order.data.summary?.discount.toFixed(2)}</span>
+              <span className="text-green-500">-₹{order?.discount.toFixed(2)}</span>
             </div>
           )}
           {order.walletAmountUsed > 0 && (
             <div className="flex justify-between">
               <span>Wallet Credit Used:</span>
-              <span className="text-green-500">-₹{order.data.summary?.walletAmountUsed.toFixed(2)}</span>
+              <span className="text-green-500">-₹{order?.walletAmountUsed.toFixed(2)}</span>
             </div>
           )}
           <div className="flex justify-between">
             <span>Tax:</span>
-            <span>₹{order.data.summary?.tax.toFixed(2)}</span>
+            <span>₹{order?.tax.toFixed(2)}</span>
           </div>
           <div className="flex justify-between font-bold pt-2 border-t border-gray-200">
             <span>Total:</span>
-            <span className="text-red-500">₹{order.data.summary?.total.toFixed(2)}</span>
+            <span className="text-red-500">₹{order?.total.toFixed(2)}</span>
           </div>
         </div>
       </div>

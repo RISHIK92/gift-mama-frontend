@@ -406,7 +406,7 @@ const ProductPage = () => {
               {product?.categories.map((category, index) => (
                 <span key={index} className="bg-gray-300 px-2 py-1 rounded">{category}</span>
               ))}
-            </div>
+            </div>  
             <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
             
             <div className="flex items-center gap-2 mb-2">

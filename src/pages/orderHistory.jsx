@@ -119,23 +119,6 @@ export const OrderHistory = () => {
           <span className="text-red-500 mr-2"><ClipboardList /></span> Order History
         </h1>
 
-        {/* Order Filters */}
-        <div className="flex justify-start mb-6 space-x-4">
-          {['All', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(status => (
-            <button
-              key={status}
-              className={`px-4 py-2 rounded-full text-sm transition-all ${
-                activeFilter.toLowerCase() === status.toLowerCase() 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-              onClick={() => filterOrders(status.toLowerCase())}
-            >
-              {status}
-            </button>
-          ))}
-        </div>
-
         {getFilteredOrders().length === 0 ? (
           <div className="text-center py-8">
             <p className="text-lg mb-4">No orders found</p>

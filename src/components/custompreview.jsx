@@ -55,6 +55,7 @@ const ImageClippingTool = ({
         canvas.height - padding * 2
       );
     } else if (maskDefinition.type === 'path') {
+
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
       const width = canvas.width * 0.8;

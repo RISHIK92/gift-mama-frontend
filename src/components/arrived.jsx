@@ -5,7 +5,7 @@ export const productData = [
 
     {
         id: 1,
-        title: "Smartphone",
+        title: "smartphone",
         price: 499,
         discount: 60,
         discountedPrice: 599,
@@ -33,7 +33,7 @@ export const productData = [
     },
     {
         id: 4,
-        title: "Smart Watch",
+        title: "smart Watch",
         price: 199,
         discountedPrice: 249,
         image: "https://via.placeholder.com/300",
@@ -52,7 +52,7 @@ export const productData = [
     },
     {
         id: 1,
-        title: "Smartphone",
+        title: "smartphone",
         price: 499,
         discount: 60,
         discountedPrice: 599,
@@ -80,7 +80,7 @@ export const productData = [
     },
     {
         id: 4,
-        title: "Smart Watch",
+        title: "smart Watch",
         price: 199,
         discountedPrice: 249,
         image: "https://via.placeholder.com/300",
@@ -99,7 +99,7 @@ export const productData = [
     },
     {
         id: 1,
-        title: "Smartphone",
+        title: "smartphone",
         price: 499,
         discount: 60,
         discountedPrice: 599,
@@ -127,7 +127,7 @@ export const productData = [
     },
     {
         id: 4,
-        title: "Smart Watch",
+        title: "smart Watch",
         price: 199,
         discountedPrice: 249,
         image: "https://via.placeholder.com/300",
@@ -146,7 +146,7 @@ export const productData = [
     },
     {
         id: 1,
-        title: "Smartphone",
+        title: "smartphone",
         price: 499,
         discount: 60,
         discountedPrice: 599,
@@ -174,7 +174,7 @@ export const productData = [
     },
     {
         id: 4,
-        title: "Smart Watch",
+        title: "smart Watch",
         price: 199,
         discountedPrice: 249,
         image: "https://via.placeholder.com/300",

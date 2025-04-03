@@ -20,6 +20,14 @@ const useAllCategories = () => {
                 if (!subCategoriesResponse.ok) throw new Error("Failed to fetch subcategories");
                 const subCategoriesData = await subCategoriesResponse.json();
 
+                const occasionsResponse = await fetch(`${BACKEND_URL}get-occasions`);
+                if (!occasionsResponse.ok) throw new Error("Failed to fetch occasions");
+                const occasionsData = await occasionsResponse.json();
+
+                const recipientResponse = await fetch(`${BACKEND_URL}get-recipients`);
+                if (!recipientResponse.ok) throw new Error("Failed to fetch recipients")
+                const recipientData = await recipientResponse.json();
+
                 if (Array.isArray(categoriesData) && categoriesData.length > 0) {
                     setAllCategories(categoriesData[0].categories || []);
                     setAllOccasions(categoriesData[0].occasions || []);
@@ -27,6 +35,9 @@ const useAllCategories = () => {
                 } else {
                     throw new Error("Invalid data format received from all-categories API");
                 }
+
+                setAllOccasions(occasionsData);
+                setAllRecipients(recipientData)
 
                 // Process get-categories data
                 if (Array.isArray(subCategoriesData)) {
@@ -54,7 +65,7 @@ const useAllCategories = () => {
 
     return { 
         allCategories, 
-        allOccasions, 
+        allOccasions,
         allRecipients, 
         categories, 
         subCategories,

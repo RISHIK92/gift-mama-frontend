@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Package, ArrowLeft, AlertCircle, Cross } from 'lucide-react';
 import { BACKEND_URL } from '../Url';
+import OrderTrackingTimeline from '../components/orderTrack';
 
 export const OrderDetail = () => {
   const { orderId } = useParams();
@@ -185,17 +186,9 @@ export const OrderDetail = () => {
           {/* Order Tracking Section */}
           <div className="bg-white shadow-md rounded-lg p-6">
             <h2 className="font-bold text-lg mb-4">Order Tracking</h2>
-            <div className="relative pl-8 border-l-2 border-gray-200">
-              {/* Tracking steps would be dynamically rendered based on order status */}
-              <div className="mb-4 relative">
-                <div className="absolute left-[-9px] top-0 w-4 h-4 bg-red-500 rounded-full"></div>
-                <p className="font-medium">Order Placed</p>
-                <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleString()}</p>
-              </div>
-              {/* Add more tracking steps dynamically */}
+              <OrderTrackingTimeline order={order}/>
             </div>
           </div>
-        </div>
 
         <div className="space-y-6">
           {/* Order Summary Section */}

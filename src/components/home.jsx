@@ -6,6 +6,7 @@ import { FlashSale } from "../components/flash";
 import { HeroBanner } from "../components/heroBanner";
 import { GiftsForOccasions } from "../components/occasion";
 import useHomes from "../hooks/useHome";
+import HomeFlashSaleBanner from "./test";
 
 export function Home() {
     const { home, customSections, loading } = useHomes();
@@ -13,7 +14,6 @@ export function Home() {
     const image = heroData.advert || [];
 
     const renderCustomSectionsWithBanners = () => {
-        // Filter only enabled sections
         const enabledSections = customSections.filter(section => section.enabled);
         
         if (!enabledSections || enabledSections.length === 0) return null;
@@ -27,7 +27,7 @@ export function Home() {
                 result.push(
                     <Advert 
                         key={`banner-${currentIndex}`}
-                        image={image[bannerIndex]} 
+                        image={image[bannerIndex]}
                     />
                 );
             }

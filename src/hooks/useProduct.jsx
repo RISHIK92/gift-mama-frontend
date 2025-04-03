@@ -28,6 +28,7 @@ const useProducts = () => {
                         discountedPrice,
                         category: product.categories || [],
                         occasion: product.occasion || [],
+                        recipients: product.recipients || [],
                         subCategory: product.subCategories || [],
                         image: product.images?.[0]?.mainImage || "https://via.placeholder.com/150",
                         subImages: product.images?.[0]?.subImages || [],
