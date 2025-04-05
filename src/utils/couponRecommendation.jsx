@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tag, X, Clipboard, CheckCircle, RefreshCw, AlertCircle, Gift, Info } from 'lucide-react';
 import { BACKEND_URL } from '../Url';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './dialogComponents'
 
 const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon = null }) => {
   const [coupons, setCoupons] = useState([]);
@@ -9,6 +10,7 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
   const [copied, setCopied] = useState(null);
   const [showAll, setShowAll] = useState(false);
   const [applyingCoupon, setApplyingCoupon] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchCoupons();
@@ -52,6 +54,7 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
     setApplyingCoupon(code);
     await onApplyCoupon(code);
     setApplyingCoupon(null);
+    setDialogOpen(false);
   };
 
   // Calculate potential savings
@@ -64,12 +67,12 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
     }
   };
 
-    // Sort coupons by best savings first
-    const sortedCoupons = [...coupons].sort((a, b) => {
-        const savingsA = calculateSavings(a);
-        const savingsB = calculateSavings(b);
-        return savingsB - savingsA;
-      });
+  // Sort coupons by best savings first
+  const sortedCoupons = [...coupons].sort((a, b) => {
+    const savingsA = calculateSavings(a);
+    const savingsB = calculateSavings(b);
+    return savingsB - savingsA;
+  });
 
   // Display only the best 3 coupons unless showAll is true
   const displayCoupons = showAll ? sortedCoupons : sortedCoupons.slice(0, 3);
@@ -79,6 +82,7 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
     return appliedCoupon && appliedCoupon.code === code;
   };
 
+  // Component to show when loading
   if (loading) {
     return (
       <div className="p-4 border rounded-lg bg-gray-50 mb-4 flex justify-center">
@@ -87,6 +91,7 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
     );
   }
 
+  // Component to show when error
   if (error) {
     return (
       <div className="p-4 border rounded-lg bg-red-50 text-red-700 mb-4 flex items-center">
@@ -96,6 +101,7 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
     );
   }
 
+  // Component to show when no coupons
   if (coupons.length === 0) {
     return (
       <div className="p-4 border rounded-lg bg-gray-50 mb-4">
@@ -107,6 +113,7 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
     );
   }
 
+  // Main component - Summary view with applied coupon
   return (
     <div className="border rounded-lg mb-4 overflow-hidden">
       <div className="bg-red-50 p-3 border-b">
@@ -117,7 +124,7 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
               {appliedCoupon ? 'Applied Coupon' : 'Available Coupons'}
             </h3>
           </div>
-          {appliedCoupon && (
+          {appliedCoupon ? (
             <button 
               onClick={() => onApplyCoupon(null)}
               className="text-sm text-red-500 flex items-center"
@@ -125,11 +132,92 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
               <X className="h-4 w-4 mr-1" />
               Remove
             </button>
+          ) : (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <button className="text-sm text-red-500 flex items-center">
+                  View All Coupons
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center">
+                    <Gift className="h-5 w-5 mr-2 text-red-500" />
+                    Available Coupons
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="max-h-[60vh] overflow-y-auto divide-y">
+                  {sortedCoupons.map((coupon) => {
+                    const savings = calculateSavings(coupon);
+                    return (
+                      <div key={coupon.code} className="p-4 flex flex-col">
+                        <div className="flex items-center mb-1">
+                          <Tag className="h-4 w-4 text-red-500" />
+                          <span className="font-medium text-gray-800">{coupon.code}</span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{coupon.description}</p>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            {coupon.minPurchase > 0 && (
+                              <p className="text-xs text-gray-500">
+                                Min. purchase: ₹{coupon.minPurchase.toFixed(2)}
+                              </p>
+                            )}
+                            {coupon.expiryDate && (
+                              <p className="text-xs text-gray-500">
+                                Valid until: {new Date(coupon.expiryDate).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center">
+                            <span className="text-sm font-medium text-green-600 mr-3">
+                              Save ₹{savings.toFixed(2)}
+                            </span>
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => handleCopyCode(coupon.code)}
+                                className="text-gray-500 p-1 rounded hover:bg-gray-100"
+                                title="Copy code"
+                              >
+                                {copied === coupon.code ? (
+                                  <CheckCircle className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Clipboard className="h-4 w-4" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleApplyCoupon(coupon.code)}
+                                disabled={applyingCoupon === coupon.code}
+                                className={`text-xs px-3 py-1 rounded ${
+                                  applyingCoupon === coupon.code
+                                    ? 'bg-gray-200 text-gray-500'
+                                    : 'bg-red-500 text-white hover:bg-red-600'
+                                }`}
+                              >
+                                {applyingCoupon === coupon.code ? (
+                                  <span className="flex items-center">
+                                    <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                                    Applying
+                                  </span>
+                                ) : (
+                                  'Apply'
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       </div>
 
       <div className="divide-y">
+        {/* Display applied coupon if any */}
         {appliedCoupon && (
           <div className="p-3 bg-green-50 flex items-center justify-between">
             <div>
@@ -148,33 +236,18 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
           </div>
         )}
 
-        {(!appliedCoupon || showAll) && displayCoupons.map((coupon) => {
-          const isApplied = isCouponApplied(coupon.code);
+        {/* Display top 3 coupons in the main view if no coupon is applied */}
+        {!appliedCoupon && displayCoupons.map((coupon) => {
           const savings = calculateSavings(coupon);
           
           return (
-            <div key={coupon.code} className={`p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between ${isApplied ? 'bg-green-50' : ''}`}>
+            <div key={coupon.code} className="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div className="flex-1">
                 <div className="flex items-center mb-1">
-                  <Tag className={`h-4 w-4 mr-2 ${isApplied ? 'text-green-600' : 'text-red-500'}`} />
+                  <Tag className="h-4 w-4 mr-2 text-red-500" />
                   <span className="font-medium text-gray-800">{coupon.code}</span>
-                  {isApplied && (
-                    <span className="ml-2 text-sm text-green-600 flex items-center">
-                      <CheckCircle className="h-3 w-3 mr-1" /> Applied
-                    </span>
-                  )}
                 </div>
                 <p className="text-sm text-gray-600">{coupon.description}</p>
-                {coupon.minPurchase > 0 && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Min. purchase: ₹{coupon.minPurchase.toFixed(2)}
-                  </p>
-                )}
-                {coupon.expiryDate && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Valid until: {new Date(coupon.expiryDate).toLocaleDateString()}
-                  </p>
-                )}
               </div>
               
               <div className="mt-3 sm:mt-0 flex items-center">
@@ -195,26 +268,24 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
                     )}
                   </button>
                   
-                  {!isApplied && (
-                    <button
-                      onClick={() => handleApplyCoupon(coupon.code)}
-                      disabled={applyingCoupon === coupon.code}
-                      className={`text-xs px-3 py-1 rounded ${
-                        applyingCoupon === coupon.code
-                          ? 'bg-gray-200 text-gray-500'
-                          : 'bg-red-500 text-white hover:bg-red-600'
-                      }`}
-                    >
-                      {applyingCoupon === coupon.code ? (
-                        <span className="flex items-center">
-                          <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                          Applying
-                        </span>
-                      ) : (
-                        'Apply'
-                      )}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleApplyCoupon(coupon.code)}
+                    disabled={applyingCoupon === coupon.code}
+                    className={`text-xs px-3 py-1 rounded ${
+                      applyingCoupon === coupon.code
+                        ? 'bg-gray-200 text-gray-500'
+                        : 'bg-red-500 text-white hover:bg-red-600'
+                    }`}
+                  >
+                    {applyingCoupon === coupon.code ? (
+                      <span className="flex items-center">
+                        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                        Applying
+                      </span>
+                    ) : (
+                      'Apply'
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
@@ -222,14 +293,16 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
         })}
       </div>
       
-      {coupons.length > 3 && (
+      {/* "View more" button replaced by the Dialog trigger at the top */}
+      {!appliedCoupon && coupons.length > 3 && (
         <div className="p-3 bg-gray-50 border-t flex justify-center">
-          <button
-            onClick={() => setShowAll(!showAll)}
-            className="text-sm text-gray-600 hover:text-red-500"
-          >
-            {showAll ? 'Show Less' : `Show All Coupons (${coupons.length})`}
-          </button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <button className="text-sm text-gray-600 hover:text-red-500">
+                View All Coupons ({coupons.length})
+              </button>
+            </DialogTrigger>
+          </Dialog>
         </div>
       )}
     </div>

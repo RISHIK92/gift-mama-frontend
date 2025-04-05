@@ -111,9 +111,9 @@ export const OrderConfirmation = () => {
         <p className="text-gray-600">
           Your order #{order.orderNumber} has been placed successfully.
         </p>
-        <p className="text-gray-600">
+        {/* <p className="text-gray-600">
           A confirmation email has been sent to {order.customer?.email || 'your email address'}.
-        </p>
+        </p> */}
       </div>
       
       <div className="bg-gray-50 p-6 rounded-lg mb-6">

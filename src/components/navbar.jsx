@@ -144,6 +144,16 @@ const MobileMenu = ({ token, navigate, setNavCategory, categories, location, set
                 
                 <div 
                   className="flex justify-between items-center p-3 border-b"
+                  onClick={() => {navigate('/all'); setNavCategory('All Products'); closeMenu();}}
+                >
+                  <div className="flex items-center">
+                    <ShoppingBag className="h-5 w-5 text-red-500 mr-3" />
+                    <span className="font-medium">All Products</span>
+                  </div>
+                </div>
+                
+                <div 
+                  className="flex justify-between items-center p-3 border-b"
                   onClick={() => setShowCategories(!showCategories)}
                 >
                   <span className="font-medium">Categories</span>
@@ -497,6 +507,16 @@ export const Navbar = ({setNavCategory}) => {
         <div>
           <CategoryDropdown setNavCategory={setNavCategory} navigate={navigate}/>
         </div>
+        {/* All Products Button */}
+        <button
+          className="px-4 py-2 text-gray-600 hover:text-red-500 text-sm font-medium"
+          onClick={() => {
+            navigate('/all');
+            setNavCategory('All Products');
+          }}
+        >
+          All Products
+        </button>
         {sortedCategories.map((e) => (
           <button
             key={e.id}

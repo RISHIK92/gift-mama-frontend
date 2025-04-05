@@ -85,8 +85,8 @@ export const HeroBanner = () => {
               <AlertCircle className="h-12 w-12 text-gray-400" />
             </div>
           )}
-          <div className="absolute inset-0 bg-black bg-opacity-30 flex flex-col items-center justify-center text-white text-center px-4">
-            <h2 className="text-5xl font-bold">{titles[index] || "Untitled"}</h2>
+          <div className="absolute inset-0 bg-black bg-opacity-5 flex flex-col items-center justify-center text-white text-center px-4">
+            <h2 className="text-5xl font-bold">{titles[index] || ""}</h2>
             <p className="text-2xl">{subtitles[index] || ""}</p>
           </div>
         </div>
