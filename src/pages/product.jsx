@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ProductCard } from '../components/product';
 import { CheckCircle, Expand, Eye, ShoppingCart, X, ChevronLeft, ChevronRight, Plus, Info } from 'lucide-react';
 import { Heart } from 'lucide-react';
@@ -28,7 +28,6 @@ const ImageModal = ({ images, currentIndex, onClose, onChangeImage }) => {
   };
 
   const handleBackdropClick = (e) => {
-    // Close modal only if the click was on the backdrop (outside modal content)
     if (modalContentRef.current && !modalContentRef.current.contains(e.target)) {
       onClose();
     }
@@ -154,7 +153,6 @@ const ProductSkeleton = () => {
   );
 };
 
-// Requirements Modal Component
 const RequirementsModal = ({ onClose }) => {
   const modalContentRef = useRef(null);
 
@@ -220,7 +218,8 @@ const RequirementsModal = ({ onClose }) => {
 
 const ProductPage = () => {
   const { productId } = useParams();
-  const {products} = useProducts();
+  const navigate = useNavigate();
+  const { products } = useProducts();
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -230,6 +229,7 @@ const ProductPage = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
   const [showRequirementsModal, setShowRequirementsModal] = useState(false);
+  const [customizationData, setCustomizationData] = useState([]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -250,18 +250,17 @@ const ProductPage = () => {
   }, [productId]);
 
   useEffect(() => {
-    // Handle ESC key to close modals
     const handleEscKey = (e) => {
       if (e.key === 'Escape') {
         if (showModal) setShowModal(false);
         if (showRequirementsModal) setShowRequirementsModal(false);
+        if (showCustomizeModal) setShowCustomizeModal(false);
       }
     };
 
     window.addEventListener('keydown', handleEscKey);
     
-    // Prevent body scroll when modals are open
-    if (showModal || showRequirementsModal) {
+    if (showModal || showRequirementsModal || showCustomizeModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'auto';
@@ -271,7 +270,7 @@ const ProductPage = () => {
       window.removeEventListener('keydown', handleEscKey);
       document.body.style.overflow = 'auto';
     };
-  }, [showModal, showRequirementsModal]);
+  }, [showModal, showRequirementsModal, showCustomizeModal]);
 
   if (loading) return <ProductSkeleton />;
   if (!product) return <div className="text-center py-10">Product not found</div>;
@@ -279,40 +278,67 @@ const ProductPage = () => {
   const addToCart = async (e) => {
     e.stopPropagation();
     try {
-        setCartLoading(true);
-        const token = localStorage.getItem('authToken');
-        
-        if (!token) {
-            navigate('/login');
-            return;
-        }
-        
-        const response = await fetch(`${BACKEND_URL}cart/add`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                productId: product.id,
-                quantity: quantity
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to add item to cart');
-        }
-        
-        setCartSuccess(true);
-        setTimeout(() => setCartSuccess(false), 1000); 
+      setCartLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const payload = customizationData.length > 0
+        ? {
+            productId: product.id,
+            items: customizationData.map(item => ({
+              customizations: {
+                maskId: item.maskId,
+                uploadId: item.uploadId,
+                position: item.position,
+                scale: item.scale,
+                rotation: item.rotation
+              }
+            }))
+          }
+        : {
+            productId: product.id,
+            quantity: quantity
+          };
+
+      const endpoint = customizationData.length > 0 
+        ? 'cart/add-customized' 
+        : 'cart/add';
+      
+      const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to add item to cart');
+      }
+      
+      setCartSuccess(true);
+      setTimeout(() => {
+        setCartSuccess(false);
+        setCustomizationData([]);
+      }, 1000);
     } catch (error) {
-        console.error('Error adding to cart:', error);
-        alert(`Error: ${error.message}`);
+      console.error('Error adding to cart:', error);
+      alert(`Error: ${error.message}`);
     } finally {
       setCartLoading(false);
     }
+  };
+
+  const handleSaveCustomization = (customizedImages) => {
+    setCustomizationData(customizedImages);
+    setShowCustomizeModal(false);
   };
 
   const handleDecrement = () => {
@@ -338,8 +364,6 @@ const ProductPage = () => {
   };
   
   const hasMoreImages = product.images?.[0]?.subImages?.length > 2;
-  
-  // Get visible sub-images (limited to 2 if more than 3 total images including main)
   const visibleSubImages = product.images?.[0]?.subImages?.slice(0, 2) || [];
 
   return (
@@ -366,29 +390,24 @@ const ProductPage = () => {
                 >
                   <Expand className="w-5 h-5 text-white" />
                 </button>
-                <button className="p-2 bg-[#FF3B3B] rounded-full hover:bg-red-400 transition">
-                  <Heart className="w-5 h-5 text-white" />
-                </button>
               </div>
             </div>
             
             <div className="flex gap-3 mt-4 overflow-x-auto md:overflow-visible">
-              {/* Show only first 2 sub-images */}
               {visibleSubImages.map((src, index) => (
                 <div 
                   key={index} 
                   className="w-[100px] h-[100px] md:w-[160px] md:h-[160px] rounded-md bg-gray-400 overflow-hidden cursor-pointer"
-                  onClick={() => openModal(index + 1)} // +1 because index 0 is the main image
+                  onClick={() => openModal(index + 1)} 
                 >
                   <img src={src} className="w-full h-full object-cover" alt={`Thumbnail ${index + 1}`} />
                 </div>
               ))}
-              
-              {/* "+ more" button if there are more than 3 images total */}
+
               {hasMoreImages && (
                 <div 
                   className="w-[100px] h-[100px] md:w-[160px] md:h-[160px] rounded-md bg-gray-200 overflow-hidden cursor-pointer flex items-center justify-center"
-                  onClick={() => openModal(2)} // Open modal starting from the 3rd image (index 2)
+                  onClick={() => openModal(2)}
                 >
                   <div className="flex flex-col items-center justify-center text-gray-600">
                     <Plus className="w-8 h-8" />
@@ -403,7 +422,7 @@ const ProductPage = () => {
 
           <div className="md:px-12 lg:px-32 mt-8 md:mt-0 md:w-3/4">
             <div className="text-sm text-gray-500 mb-1 flex flex-wrap gap-2">
-              {product?.categories.map((category, index) => (
+              {product?.categories?.map((category, index) => (
                 <span key={index} className="bg-gray-300 px-2 py-1 rounded">{category}</span>
               ))}
             </div>  
@@ -421,10 +440,8 @@ const ProductPage = () => {
               )}
             </div>
             
-            <div className="text-sm text-gray-500 mb-4">Inclusive of all taxes</div>
-            <p className="text-gray-700 mb-6">{product.description}
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec tempus magna et molestie rutrum, ac tincidunt ante tortor at. Cras nec lacus dui. Curabitur in dui eget orci luctus pellentesque. Maecenas ultricies, metus ut ullamcorper tempor, augue nibh ultrices justo, non pharetra ex urna elementum sem. Etiam aliquam enim vitae lectus commodo, in malesuada elit pretium viverra. Phasellus vel dui luctus, tempus leo a, commodo nulla. Cras feugiat ligula porttitor malesuada tincidunt. Sed dui quam, pharetra et efficitur sed, lacinia sit amet velit.
-            </p>
+            <div className="text-sm text-gray-500 mb-4">{"Inclusive of all taxes"}</div>
+            <p className="text-gray-700 mb-6">{product.description}</p>
             
             <div className="mb-6">
               <label className="block mb-2">Quantity</label>
@@ -440,20 +457,20 @@ const ProductPage = () => {
             </div>
             
             <div className="flex gap-4 flex-col sm:flex-row">
-            <button 
-                className="bg-[#FF3B3B] hover:bg-red-600 text-white py-3 px-5 rounded-2xl flex-1 flex items-center justify-center text-sm font-medium gap-2"
-                onClick={() => setShowCustomizeModal(true)}
-              >
-                <span><Eye /></span> Customized Preview
-              </button>
-              {showCustomizeModal && (
-                <CustomizedPreviewModal
-                  productId={product.id}
-                  onClose={() => setShowCustomizeModal(false)}
-                />
+              {/* important add here */}
+              {product && (
+                <button 
+                  className="bg-[#FF3B3B] hover:bg-red-600 text-white py-3 px-5 rounded-2xl flex-1 flex items-center justify-center text-sm font-medium gap-2"
+                  onClick={() => setShowCustomizeModal(true)}
+                >
+                  <span><Eye /></span> Customize Product
+                </button>
               )}
+              
               <button
-                className="bg-[#FF3B3B] hover:bg-red-600 text-white py-3 px-5 rounded-2xl flex-1 flex items-center justify-center text-sm font-medium gap-2"
+                className={`bg-[#FF3B3B] hover:bg-red-600 text-white py-3 px-5 rounded-2xl flex-1 flex items-center justify-center text-sm font-medium gap-2 ${
+                  customizationData.length > 0 ? 'bg-green-600 hover:bg-green-700' : ''
+                }`}
                 onClick={addToCart}
                 disabled={cartLoading || cartSuccess}
               >
@@ -466,29 +483,45 @@ const ProductPage = () => {
                         <ShoppingCart />
                     </span>
                 )}
-                {cartLoading ? "Adding..." : cartSuccess ? "Added!" : "Add to Cart"}
+                {cartLoading 
+                  ? "Adding..." 
+                  : cartSuccess 
+                    ? "Added!" 
+                    : customizationData.length > 0 
+                      ? "Add Customized to Cart" 
+                      : "Add to Cart"}
               </button>
             </div>
-            {/* Image Requirements Section */}
-            {product.requirements && <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-lg">Images Requirement</h3>
-                {/* <button 
-                  onClick={() => setShowRequirementsModal(true)}
-                  className="text-blue-600 flex items-center gap-1 hover:text-blue-800"
-                >
-                  <Info className="w-4 h-4" />
-                  <span className="text-sm">Details</span>
-                </button> */}
+
+            {customizationData.length > 0 && (
+              <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-200">
+                <div className="flex items-center gap-2 text-green-700">
+                  <CheckCircle className="w-4 h-4" />
+                  <span className="text-sm font-medium">Product customization ready! Click "Add Customized to Cart" to proceed.</span>
+                </div>
               </div>
-              <div className="text-sm text-gray-600 space-y-1">
-                <div>{product.requirements}</div>
+            )}
+
+            {product.requirements && (
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-lg">Images Requirement</h3>
+                  <button 
+                    onClick={() => setShowRequirementsModal(true)}
+                    className="text-blue-600 flex items-center gap-1 hover:text-blue-800"
+                  >
+                    <Info className="w-4 h-4" />
+                    <span className="text-sm">Details</span>
+                  </button>
+                </div>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <div>{product.requirements}</div>
+                </div>
               </div>
-            </div>}
+            )}
           </div>
         </div>
         
-
         <FlashSale description="Offers you don't wanna miss. Flash sale!" />
         <div className="my-12 mx-4 md:ml-20 mt-24 md:mr-20">
           <h2 className="text-2xl font-serif italic mb-4">Related Products</h2>
@@ -511,6 +544,14 @@ const ProductPage = () => {
 
       {showRequirementsModal && (
         <RequirementsModal onClose={() => setShowRequirementsModal(false)} />
+      )}
+
+      {showCustomizeModal && (
+        <CustomizedPreviewModal
+          productId={product.id}
+          onClose={() => setShowCustomizeModal(false)}
+          onSave={handleSaveCustomization}
+        />
       )}
     </>
   );

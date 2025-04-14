@@ -314,7 +314,6 @@ export function FlashSale() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Active Sale Section */}
         {flashSales.map((sale, index) => (
           <div 
             key={sale.id} 
@@ -322,13 +321,11 @@ export function FlashSale() {
               activeTab === index ? 'opacity-100 translate-y-0' : 'opacity-0 absolute -translate-y-4 pointer-events-none'
             }`}
           >
-            {/* Sale description */}
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-900">{sale.title}</h2>
               <p className="text-gray-600 mt-1">{sale.description}</p>
             </div>
 
-            {/* Products grid */}
             {!saleProducts[sale.id] ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-b-4 border-red-600"></div>
@@ -341,14 +338,14 @@ export function FlashSale() {
                   <div 
                     key={product.id} 
                     className="group bg-white border border-gray-200 rounded-xl cursor-pointer overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-                  onClick={() => navigate(`/product/${product.name}`)}>
+                  >
                     <div className="relative">
                       <div className="absolute top-3 left-3 z-10">
                         <div className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-md">
                           {product.discount}% OFF
                         </div>
                       </div>
-                      <div className="h-48 bg-gray-50 flex items-center justify-center p-6 group-hover:bg-gray-100 transition-colors">
+                      <div className="h-48 bg-gray-50 flex items-center justify-center p-6 group-hover:bg-gray-100 transition-colors" onClick={() => navigate(`/product/${product.name}`)}>
                         {product.image ? (
                           <img
                             src={product.image || "/placeholder.svg"}
@@ -364,11 +361,11 @@ export function FlashSale() {
                     </div>
 
                     <div className="p-4">
-                      <h3 className="font-medium text-gray-900 line-clamp-2 h-12 text-lg">{product.name}</h3>
+                      <h3 className="font-medium text-gray-900 line-clamp-2 h-12 text-lg" onClick={() => navigate(`/product/${product.name}`)}>{product.name}</h3>
                       
                       <div className="flex items-baseline gap-3 my-3">
-                        <span className="text-red-600 font-bold text-xl">₹{product.salePrice.toFixed(2)}</span>
-                        <span className="text-gray-500 line-through text-sm">₹{product.originalPrice.toFixed(2)}</span>
+                        <span className="text-red-600 font-bold text-xl" onClick={() => navigate(`/product/${product.name}`)}>₹{product.salePrice.toFixed(2)}</span>
+                        <span className="text-gray-500 line-through text-sm" onClick={() => navigate(`/product/${product.name}`)}>₹{product.originalPrice.toFixed(2)}</span>
                       </div>
                       
                       <div className="flex items-center gap-2 mt-4">

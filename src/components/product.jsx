@@ -13,24 +13,21 @@ export const ProductCard = ({ product, sortOption = "default", state = true }) =
     const [isInWishlist, setIsInWishlist] = useState(false);
     const [isWishlistLoading, setIsWishlistLoading] = useState(false);
     
-    // Check if product is in wishlist when component mounts
     useEffect(() => {
         const checkWishlistStatus = async () => {
             try {
                 const token = localStorage.getItem("authToken");
                 if (!token) return;
                 
-                // Make sure we're using the correct endpoint and proper error handling
                 const response = await axios.get(
                     `${BACKEND_URL}wishlist/check/${product.id}`,
                     { 
                         headers: { Authorization: `Bearer ${token}` },
-                        // Add timeout to prevent hanging requests
+
                         timeout: 5000
                     }
                 );
                 
-                // Set state based on response - default to false if data structure is unexpected
                 setIsInWishlist(response.data?.isInWishlist === true);
             } catch (err) {
                 console.error("Failed to check wishlist status:", err);
@@ -101,15 +98,12 @@ export const ProductCard = ({ product, sortOption = "default", state = true }) =
                 navigate('/signin');
                 return;
             }
-
-            // Store the current state before changing it
+            
             const previousState = isInWishlist;
             
-            // Optimistically update UI
             setIsInWishlist(!previousState);
             
             if (previousState) {
-                // Remove from wishlist
                 const response = await fetch(`${BACKEND_URL}wishlist/remove`, {
                     method: 'DELETE',
                     headers: {
@@ -122,12 +116,10 @@ export const ProductCard = ({ product, sortOption = "default", state = true }) =
                 if (response.ok) {
                     toast.success("Removed from wishlist");
                 } else {
-                    // Revert on failure
                     setIsInWishlist(true);
                     toast.error("Failed to remove from wishlist");
                 }
             } else {
-                // Add to wishlist
                 const response = await axios.post(
                     `${BACKEND_URL}wishlist/add`,
                     { productId: product.id },
@@ -144,7 +136,6 @@ export const ProductCard = ({ product, sortOption = "default", state = true }) =
             }
         } catch (err) {
             console.error(`Failed to ${isInWishlist ? 'add to' : 'remove from'} wishlist:`, err);
-            // Revert UI state if request failed - use the current state to determine what action failed
             setIsInWishlist(!isInWishlist);
             toast.error(`Failed to ${isInWishlist ? 'add to' : 'remove from'} wishlist`);
         } finally {

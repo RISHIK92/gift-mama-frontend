@@ -212,7 +212,7 @@ export const Search = ({ placeholder, setNavCategory }) => {
       </form>
 
       {isDropdownOpen && (
-        <div className="absolute top-full left-0 bg-white rounded-lg shadow-lg w-full z-20 mt-1 max-h-[80vh] overflow-y-auto">
+        <div className="absolute top-full left-0 bg-white rounded-lg shadow-lg w-full z-50 mt-1 max-h-[80vh] overflow-y-auto">
           <div className="p-4">
             {isLoading || categoriesLoading || productsLoading ? (
               <div className="flex justify-center py-4">

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, ShoppingCart, Trash2, AlertCircle, RefreshCw } from 'lucide-react';
+import { MapPin, ShoppingCart, Trash2, AlertCircle, RefreshCw, Image, ChevronRight } from 'lucide-react';
 import { BACKEND_URL } from '../Url';
 import AddressModal from '../components/addressModel';
 import CouponRecommendations from '../utils/couponRecommendation';
 
 export const Cart = () => {
-  const [cart, setCart] = useState({ items: [], summary: { subtotal: 0, discount: 0, total: 0, deliveryFee: 200, tax: 0 } });
+  const [cart, setCart] = useState({ items: [], summary: { subtotal: 0, discount: 0, total: 0, deliveryFee: 0, tax: 0 } });
   const [useWallet, setUseWallet] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -100,36 +100,36 @@ export const Cart = () => {
     }
   };
 
-const fetchAppliedCoupon = async () => {
-  try {
-    const token = localStorage.getItem('authToken');
-    
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-    
-    const response = await fetch(`${BACKEND_URL}cart/coupon`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
+  const fetchAppliedCoupon = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        navigate('/login');
+        return;
       }
-    });
-    
-    if (response.status === 404) {
-      setAppliedCoupon(null);
-      return;
+      
+      const response = await fetch(`${BACKEND_URL}cart/coupon`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.status === 404) {
+        setAppliedCoupon(null);
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch applied coupon');
+      }
+      
+      const data = await response.json();
+      setAppliedCoupon(data.coupon);
+    } catch (error) {
+      console.error('Error fetching applied coupon:', error);
     }
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch applied coupon');
-    }
-    
-    const data = await response.json();
-    setAppliedCoupon(data.coupon);
-  } catch (error) {
-    console.error('Error fetching applied coupon:', error);
-  }
-};
+  };
   
   const fetchCart = async () => {
     try {
@@ -358,6 +358,42 @@ const fetchAppliedCoupon = async () => {
     </div>
   );
 
+  // Function to get customization details for all items
+  const getCustomizationDetails = () => {
+    return cart.items.map(item => {
+      // Process customization details
+      let customizationDetails = null;
+      let customizationImageUrls = [];
+      
+      // If customizationImageUrls is available as an array, use directly
+      if (item.customizationImageUrls && Array.isArray(item.customizationImageUrls)) {
+        customizationImageUrls = item.customizationImageUrls;
+      }
+      
+      // If customizationDetails is available, parse if needed
+      if (item.customizationDetails) {
+        try {
+          // Handle string format and convert to object if needed
+          const details = typeof item.customizationDetails === 'string' 
+            ? JSON.parse(item.customizationDetails) 
+            : item.customizationDetails;
+            
+          customizationDetails = details;
+        } catch (error) {
+          console.error('Error parsing customization details:', error);
+        }
+      }
+      
+      return {
+        itemId: item.id,
+        productId: item.product.id,
+        customizationImageUrls: customizationImageUrls,
+        customizationDetails: customizationDetails,
+        quantity: item.quantity
+      };
+    });
+  };
+
   const initializeRazorpayCheckout = async () => {
     try {
       if (!selectedAddress) {
@@ -367,6 +403,9 @@ const fetchAppliedCoupon = async () => {
       
       const token = localStorage.getItem('authToken');
       const finalAmount = calculateFinalAmount();
+      
+      // Get the customization details for all cart items
+      const customizationDetails = getCustomizationDetails();
       
       const response = await fetch(`${BACKEND_URL}create-order`, {
         method: 'POST',
@@ -390,7 +429,8 @@ const fetchAppliedCoupon = async () => {
             country: selectedAddress.country,
             phone: selectedAddress.phone
           },
-          notes: `Order placed on ${new Date().toLocaleString()}` // Send as string instead of object
+          notes: `Order placed on ${new Date().toLocaleString()}`,
+          cartItems: customizationDetails  // Sending the updated customization details
         })
       });
 
@@ -420,7 +460,8 @@ const fetchAppliedCoupon = async () => {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 useWallet: useWallet,
-                walletAmount: useWallet ? Math.min(walletBalance, cart.summary.total + cart.summary.deliveryFee + cart.summary.tax) : 0
+                walletAmount: useWallet ? Math.min(walletBalance, cart.summary.total + cart.summary.deliveryFee + cart.summary.tax) : 0,
+                customizationDetails: customizationDetails  // Send customization details again with payment verification
               })
             });
 
@@ -442,7 +483,8 @@ const fetchAppliedCoupon = async () => {
           contact: selectedAddress.phone
         },
         notes: {
-          address: `${selectedAddress.line1}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.postalCode}`
+          address: `${selectedAddress.line1}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.postalCode}`,
+          customizations: JSON.stringify(customizationDetails)  // Add customization details to Razorpay notes
         },
         theme: {
           color: '#FF2A2A'
@@ -488,6 +530,149 @@ const fetchAppliedCoupon = async () => {
     initializeRazorpayCheckout();
   };
   
+  // Updated function to get customization images
+  const getCustomizationImages = (item) => {
+    // First check if item has customizationImageUrls as an array
+    if (item.customizationImageUrls && Array.isArray(item.customizationImageUrls)) {
+      return item.customizationImageUrls;
+    }
+    
+    // Legacy support for single image URL
+    if (item.customizationImageUrl) {
+      return [item.customizationImageUrl];
+    }
+    
+    // Try to extract from customizationDetails
+    if (item.customizationDetails) {
+      try {
+        // Handle different formats based on your app's structure
+        const details = typeof item.customizationDetails === 'string' 
+          ? JSON.parse(item.customizationDetails) 
+          : item.customizationDetails;
+        
+        let imageUrls = [];
+        
+        // Check various possible formats
+        if (details.imageUrl) imageUrls.push(details.imageUrl);
+        if (details.uploadedImage) imageUrls.push(details.uploadedImage);
+        if (details.uploads && Array.isArray(details.uploads)) {
+          details.uploads.forEach(upload => {
+            if (upload.imageUrl) imageUrls.push(upload.imageUrl);
+          });
+        }
+        
+        // Check for masks with images
+        if (details.masks && Array.isArray(details.masks)) {
+          details.masks.forEach(mask => {
+            if (mask.imageUrl) imageUrls.push(mask.imageUrl);
+            if (mask.upload && mask.upload.imageUrl) imageUrls.push(mask.upload.imageUrl);
+          });
+        }
+        
+        // Check customizations array if it exists
+        if (details.customizations && Array.isArray(details.customizations)) {
+          details.customizations.forEach(customization => {
+            // If there's relevant image data in each customization item
+            if (customization.imageUrl) imageUrls.push(customization.imageUrl);
+          });
+        }
+        
+        return imageUrls.length > 0 ? imageUrls : null;
+      } catch (error) {
+        console.error('Error parsing customization details:', error);
+        return null;
+      }
+    }
+    
+    return null;
+  };
+  
+  // Component to display multiple customization images
+  const CustomizationImages = ({ images, onClick }) => {
+    if (!images || images.length === 0) return null;
+    
+    // If there's only one image, show it directly
+    if (images.length === 1) {
+      return (
+        <div 
+          className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full shadow-md border-2 border-white overflow-hidden bg-white flex items-center justify-center cursor-pointer"
+          onClick={onClick}
+        >
+          <img
+            src={images[0]}
+            alt="Customization"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "/placeholder-custom.jpg";
+            }}
+          />
+          <div className="absolute inset-0 bg-black bg-opacity-10 rounded-full"></div>
+        </div>
+      );
+    }
+    
+    // If multiple images, show first with a counter
+    return (
+      <div 
+        className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full shadow-md border-2 border-white overflow-hidden bg-white flex items-center justify-center cursor-pointer"
+        onClick={onClick}
+      >
+        <img
+          src={images[0]}
+          alt="Customization"
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = "/placeholder-custom.jpg";
+          }}
+        />
+        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+          <span className="text-white font-bold text-xs">+{images.length}</span>
+        </div>
+      </div>
+    );
+  };
+  
+  // Modal to show all customization images
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [activeImages, setActiveImages] = useState([]);
+  
+  const ImageModal = () => {
+    if (!showImageModal || activeImages.length === 0) return null;
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center" onClick={() => setShowImageModal(false)}>
+        <div className="bg-white rounded-lg p-4 max-w-md w-full" onClick={e => e.stopPropagation()}>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">Custom Designs</h3>
+            <button onClick={() => setShowImageModal(false)} className="text-gray-500">×</button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {activeImages.map((img, idx) => (
+              <div key={idx} className="aspect-square rounded-md overflow-hidden">
+                <img 
+                  src={img} 
+                  alt={`Customization ${idx+1}`} 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "/placeholder-custom.jpg";
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  const openImageModal = (images) => {
+    setActiveImages(images);
+    setShowImageModal(true);
+  };
+  
   if (loading) {
     return (
       <div className="p-4 max-w-6xl mx-auto">
@@ -520,6 +705,8 @@ const fetchAppliedCoupon = async () => {
         onAddressSelect={handleAddressSelect}
       />
       
+      <ImageModal />
+      
       <div className="p-4 max-w-6xl mx-auto">
         <h1 className="text-2xl font-medium flex items-center mb-6 italic">
           <span className="text-red-500 mr-2"><ShoppingCart /></span> Your Cart
@@ -546,23 +733,34 @@ const fetchAppliedCoupon = async () => {
                 const itemDiscount = (price - discountedPrice) * item.quantity;
                 const isUpdating = actionLoading.type === 'update' && actionLoading.itemId === item.id;
                 const isRemoving = actionLoading.type === 'remove' && actionLoading.itemId === item.id;
+                const customImages = getCustomizationImages(item);
                 
                 return (
                   <div key={item.id} className={`flex mb-6 pb-4 border-b border-gray-200 ${isRemoving ? 'opacity-50 animate-pulse' : ''}`}>
-                    <div 
-                      className="w-[140px] h-[140px] rounded-md bg-gray-200 overflow-hidden mr-3 cursor-pointer"
-                      onClick={() => navigateToProduct(product.name)}
-                    >
-                      <img 
-                        src={product.images[0]?.mainImage || product.images[0]?.displayImage || ""} 
-                        className="w-full h-full object-cover" 
-                        alt={product.name}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = "/placeholder-image.jpg";
-                        }}
-                      />
+                    <div className="relative w-[140px] h-[140px] mr-3">
+                      <div 
+                        className="w-full h-full rounded-md bg-gray-200 overflow-hidden cursor-pointer"
+                        onClick={() => navigateToProduct(product.name)}
+                      >
+                        <img 
+                          src={product.images[0]?.mainImage || product.images[0]?.displayImage || "/placeholder-image.jpg"} 
+                          className="w-full h-full object-cover" 
+                          alt={product.name}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "/placeholder-image.jpg";
+                          }}
+                        />
+                      </div>
+                      
+                      {customImages && customImages.length > 0 && (
+                        <CustomizationImages 
+                          images={customImages} 
+                          onClick={() => openImageModal(customImages)}
+                        />
+                      )}
                     </div>
+                    
                     <div className="flex-1">
                       <div 
                         className="font-medium text-lg mb-1 cursor-pointer hover:text-red-500"
@@ -575,6 +773,7 @@ const fetchAppliedCoupon = async () => {
                         {product.color && `Color: ${product.color}`}
                         {product.size && product.color && ` | `}
                         {product.size && `Size: ${product.size}`}
+                        {customImages && customImages.length > 0 && ` | ${customImages.length} Custom Design${customImages.length > 1 ? 's' : ''} Added`}
                       </div>
                       
                       <div className="mt-4 flex justify-between items-center">
@@ -626,14 +825,23 @@ const fetchAppliedCoupon = async () => {
                         </div>
                       </div>
                       
-                      <div className="mt-3 flex justify-end">
+                      <div className="mt-3 flex justify-between">
+                        {customImages && customImages.length > 0 && (
+                          <button 
+                            onClick={() => openImageModal(customImages)}
+                            className="text-blue-600 text-sm flex items-center"
+                          >
+View Designs <ChevronRight className="h-4 w-4 ml-1" />
+                          </button>
+                        )}
+                        
                         <button 
-                          onClick={(e) => removeItem(e, item.id)}
                           className="text-red-500 text-sm flex items-center"
+                          onClick={(e) => removeItem(e, item.id)}
                           disabled={isRemoving}
                         >
                           {isRemoving ? (
-                            <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                            <RefreshCw className="h-4 w-4 animate-spin mr-1" />
                           ) : (
                             <Trash2 className="h-4 w-4 mr-1" />
                           )}
@@ -644,149 +852,161 @@ const fetchAppliedCoupon = async () => {
                   </div>
                 );
               })}
-              
-              <div className="mt-4 py-4 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 mr-4">
-                    <input 
-                      type="text" 
-                      placeholder="Enter coupon code" 
-                      className="w-full border border-gray-300 rounded-md p-2"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                    />
-                  </div>
-                  <button 
-                    className="bg-red-500 text-white px-4 py-2 rounded-md flex items-center"
-                    onClick={applyCoupon}
-                    disabled={actionLoading.type === 'apply' || !couponCode.trim()}
-                  >
-                    {actionLoading.type === 'apply' ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Applying...
-                      </>
-                    ) : 'Apply Coupon'}
-                  </button>
-                </div>
-              </div>
             </div>
             
-            <div className="w-full lg:w-80">
-              <div className="border border-gray-200 rounded-lg">
+            {/* Order Summary Section */}
+            <div className="w-full lg:w-80 space-y-4">
+              {/* Delivery Address Section */}
+              <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-medium">Delivery Address</h3>
+                  <button 
+                    className="text-red-500 text-sm"
+                    onClick={() => setIsAddressModalOpen(true)}
+                  >
+                    {selectedAddress ? 'Change' : 'Add'}
+                  </button>
+                </div>
+                
                 {selectedAddress ? (
-                  <div className="p-4 border-b border-gray-200">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-lg font-medium">Delivery Address</h3>
-                      <button 
-                        onClick={() => setIsAddressModalOpen(true)}
-                        className="text-red-500 text-sm"
-                      >
-                        Change
-                      </button>
-                    </div>
-                    <div className="flex items-start">
-                      <MapPin className="h-5 w-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-medium">{selectedAddress.name}</p>
-                        <p className="text-sm text-gray-600">
-                          {selectedAddress.line1}
-                          {selectedAddress.line2 && `, ${selectedAddress.line2}`}
-                          {`, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.postalCode}`}
-                        </p>
-                        <p className="text-sm text-gray-600">{selectedAddress.phone}</p>
-                      </div>
-                    </div>
+                  <div className="text-sm">
+                    <div className="font-medium">{selectedAddress.name}</div>
+                    <div>{selectedAddress.line1}</div>
+                    {selectedAddress.line2 && <div>{selectedAddress.line2}</div>}
+                    <div>{selectedAddress.city}, {selectedAddress.state} {selectedAddress.postalCode}</div>
+                    <div>{selectedAddress.country}</div>
+                    <div className="mt-1">{selectedAddress.phone}</div>
                   </div>
                 ) : (
-                  <div className="p-4 border-b border-gray-200">
+                  <div 
+                    className="flex items-center text-gray-500 cursor-pointer"
+                    onClick={() => setIsAddressModalOpen(true)}
+                  >
+                    <MapPin className="h-5 w-5 mr-2" />
+                    <span>Select a delivery address</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Coupon Section */}
+              <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+                <h3 className="font-medium mb-3">Apply Coupon</h3>
+                
+                {appliedCoupon ? (
+                  <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-md flex justify-between items-center">
+                    <div>
+                      <div className="font-medium text-green-700">{appliedCoupon.code}</div>
+                      <div className="text-xs text-green-600">{appliedCoupon.description}</div>
+                    </div>
                     <button 
-                      onClick={() => setIsAddressModalOpen(true)}
-                      className="w-full bg-gray-100 text-gray-800 font-medium p-3 rounded-md flex items-center justify-center"
+                      className="text-red-500 text-sm"
+                      onClick={() => handleApplyCouponFromRecommendation(null)}
                     >
-                      <MapPin className="h-5 w-5 mr-2" />
-                      Add Delivery Address
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex mb-3">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      placeholder="Enter coupon code"
+                      className="flex-1 border border-gray-300 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                    <button
+                      className="bg-red-500 text-white px-3 py-2 rounded-r-md text-sm focus:outline-none disabled:bg-gray-400"
+                      onClick={applyCoupon}
+                      disabled={actionLoading.type === 'apply' || !couponCode.trim()}
+                    >
+                      {actionLoading.type === 'apply' ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        'Apply'
+                      )}
                     </button>
                   </div>
                 )}
-
-              <CouponRecommendations
-                    onApplyCoupon={handleApplyCouponFromRecommendation}
-                    currentCartTotal={cart.summary.subtotal}
-                    appliedCoupon={appliedCoupon}
-                  />
                 
-                <div className="p-4">
-                  <h3 className="text-lg font-medium mb-3">Order Summary</h3>
-                  
-                  <div className="space-y-2 mb-4">
-                    <div className="flex justify-between">
-                      <span>Subtotal ({cart.items.length} items)</span>
-                      <span>₹{cart.summary.subtotal.toFixed(2)}</span>
-                    </div>
-                    {cart.summary.discount > 0 && (
-                      <div className="flex justify-between text-green-600">
-                        <span>Discount</span>
-                        <span>-₹{cart.summary.discount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span>Delivery Fee</span>
-                      <span>₹{cart.summary.deliveryFee.toFixed(2)}</span>
-                    </div>
-                    {cart.summary.tax > 0 && (
-                      <div className="flex justify-between">
-                        <span>Tax</span>
-                        <span>₹{cart.summary.tax.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between font-medium pt-2 border-t border-gray-200">
-                      <span>Total</span>
-                      <span>₹{(cart.summary.total + cart.summary.deliveryFee + cart.summary.tax).toFixed(2)}</span>
-                    </div>
+                {/* Coupon Recommendations */}
+                <CouponRecommendations 
+                  subtotal={cart.summary.subtotal} 
+                  onApply={handleApplyCouponFromRecommendation}
+                  appliedCoupon={appliedCoupon}
+                />
+              </div>
+              
+              {/* Wallet Section */}
+              <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">Use Wallet Balance</h3>
+                    <p className="text-sm text-gray-500">Available: ₹{walletBalance.toFixed(2)}</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer"
+                      checked={useWallet}
+                      onChange={() => setUseWallet(!useWallet)}
+                      disabled={walletBalance <= 0}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-red-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                  </label>
+                </div>
+              </div>
+              
+              {/* Order Summary */}
+              <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <h3 className="font-medium mb-3">Order Summary</h3>
+                
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Subtotal ({cart.items.reduce((acc, item) => acc + item.quantity, 0)} items)</span>
+                    <span>₹{cart.summary.subtotal.toFixed(2)}</span>
                   </div>
                   
-                  {walletBalance > 0 && (
-                    <div className="mb-4 p-3 bg-gray-100 rounded-md">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center">
-                          <input 
-                            type="checkbox" 
-                            id="useWallet" 
-                            checked={useWallet}
-                            onChange={() => setUseWallet(!useWallet)}
-                            className="mr-2"
-                          />
-                          <label htmlFor="useWallet" className="text-sm">Use Wallet Balance</label>
-                        </div>
-                        <span className="text-sm font-medium">₹{walletBalance.toFixed(2)}</span>
-                      </div>
-                      {useWallet && (
-                        <div className="text-sm text-gray-600">
-                          <div className="flex justify-between">
-                            <span>Amount to be paid</span>
-                            <span className="font-medium">₹{calculateFinalAmount().toFixed(2)}</span>
-                          </div>
-                        </div>
-                      )}
+                  {cart.summary.discount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount</span>
+                      <span>-₹{cart.summary.discount.toFixed(2)}</span>
                     </div>
                   )}
                   
-                  <button 
-                    onClick={handleCheckout}
-                    className="w-full bg-red-500 text-white py-3 rounded-md font-medium flex items-center justify-center"
-                    disabled={cart.items.length === 0 || checkoutLoading}
-                  >
-                    {checkoutLoading ? (
-                      <>
-                        <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      'Proceed to Payment'
-                    )}
-                  </button>
+                  <div className="flex justify-between">
+                    <span>Delivery Fee</span>
+                    <span>₹{cart.summary.deliveryFee.toFixed(2)}</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span>Tax</span>
+                    <span>₹{cart.summary.tax.toFixed(2)}</span>
+                  </div>
+                  
+                  {useWallet && walletBalance > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Wallet Credit</span>
+                      <span>-₹{Math.min(walletBalance, cart.summary.total + cart.summary.deliveryFee + cart.summary.tax).toFixed(2)}</span>
+                    </div>
+                  )}
+                  
+                  <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between font-medium">
+                    <span>Total</span>
+                    <span>₹{calculateFinalAmount().toFixed(2)}</span>
+                  </div>
                 </div>
+                
+                <button
+                  className="w-full bg-red-500 text-white py-3 rounded-lg mt-4 font-medium hover:bg-red-600 transition-colors focus:outline-none flex items-center justify-center"
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading || cart.items.length === 0}
+                >
+                  {checkoutLoading ? (
+                    <RefreshCw className="h-5 w-5 animate-spin" />
+                  ) : (
+                    'Proceed to Checkout'
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -795,3 +1015,5 @@ const fetchAppliedCoupon = async () => {
     </>
   );
 };
+
+export default Cart;

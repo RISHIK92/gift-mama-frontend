@@ -30,57 +30,32 @@ const ProfileDropdown = ({ navigate, isMobile = false }) => {
     }
   }, [isMobile]);
 
-  const menuItems = [
-    { icon: <Wallet className="h-5 w-5" />, label: "Wallet", path: "/wallet" },
-    { icon: <Heart className='h-5 w-5' />, label: "Wishlist", path: "/wishlist"},
-    { icon: <ShoppingBag className="h-5 w-5" />, label: "Orders", path: "/orders" },
-    { icon: <Edit className="h-5 w-5" />, label: "Edit Profile", path: "/profile" }
-  ];
+  // When clicked, we now directly navigate to the profile page
+  const handleProfileClick = () => {
+    navigate('/profile');
+    setIsOpen(false);
+  };
 
   if (isMobile) {
     return (
       <div className="mt-2 space-y-2">
         <p className="font-medium text-gray-500 pl-4 pb-1 border-b">My Account</p>
-        {menuItems.map((item, index) => (
-          <div
-            key={index}
-            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-red-50 cursor-pointer"
-            onClick={() => {
-              navigate(item.path);
-              setIsOpen(false);
-            }}
-          >
-            <div className="text-red-500 mr-3">{item.icon}</div>
-            {item.label}
-          </div>
-        ))}
+        <div
+          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-red-50 cursor-pointer"
+          onClick={handleProfileClick}
+        >
+          <div className="text-red-500 mr-3"><CircleUserRound className="h-5 w-5" /></div>
+          My Profile
+        </div>
       </div>
     );
   }
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <div onClick={toggleDropdown} className="cursor-pointer">
+      <div onClick={handleProfileClick} className="cursor-pointer">
         <CircleUserRound className='h-8 w-8 text-gray-500 ml-4' />
       </div>
-
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
-          {menuItems.map((item, index) => (
-            <div
-              key={index}
-              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-red-50 cursor-pointer"
-              onClick={() => {
-                navigate(item.path);
-                setIsOpen(false);
-              }}
-            >
-              <div className="text-red-500 mr-3">{item.icon}</div>
-              {item.label}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 };
@@ -440,9 +415,7 @@ export const Navbar = ({setNavCategory}) => {
 
   return (
     <div className="flex flex-col bg-white">
-      {/* Main Navbar */}
       <div className="flex h-16 lg:h-20 items-center border-b px-4 lg:px-0">
-        {/* Mobile Menu Button */}
         <MobileMenu 
           token={token} 
           navigate={navigate} 
@@ -507,7 +480,6 @@ export const Navbar = ({setNavCategory}) => {
         <div>
           <CategoryDropdown setNavCategory={setNavCategory} navigate={navigate}/>
         </div>
-        {/* All Products Button */}
         <button
           className="px-4 py-2 text-gray-600 hover:text-red-500 text-sm font-medium"
           onClick={() => {

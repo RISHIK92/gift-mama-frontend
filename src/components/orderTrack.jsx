@@ -26,7 +26,6 @@ const OrderTrackingTimeline = ({ order }) => {
     }
   ];
 
-  // Handle cancelled orders
   if (order?.delivery === 'Cancelled') {
     return (
       <div className="p-4 rounded-lg border border-red-200 bg-red-50">
@@ -48,13 +47,11 @@ const OrderTrackingTimeline = ({ order }) => {
   return (
     <div className="w-full max-w-md">
       <div className="relative">
-        {/* Vertical line connecting all steps */}
         <div className="absolute left-8 top-0 h-full w-0.5 bg-gray-200"></div>
         
         {steps.map((step, index) => (
           <div key={step.id} className="relative mb-6">
             <div className="flex items-start">
-              {/* Status icon */}
               <div className={`z-10 flex items-center justify-center w-16 h-16 rounded-full border-2 ${
                 step.status === 'completed' 
                   ? 'border-green-500 bg-green-50 text-green-500' 
@@ -63,7 +60,6 @@ const OrderTrackingTimeline = ({ order }) => {
                 {step.status === 'completed' ? step.icon : <Clock size={18} />}
               </div>
               
-              {/* Step details */}
               <div className="ml-4">
                 <h3 className={`font-semibold ${
                   step.status === 'completed' ? 'text-green-600' : 'text-gray-500'

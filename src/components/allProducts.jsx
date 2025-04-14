@@ -147,7 +147,6 @@ const Header = ({ setIsMobileSidebarOpen, searchTerm, setSearchTerm }) => {
           </div>
         </div>
         
-        {/* Search bar - hidden on small screens, visible and right-aligned on desktop */}
         <div className="hidden md:block md:w-1/3 ml-auto mr-4">
           <Search 
             placeholder="Search gifts..." 

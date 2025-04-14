@@ -21,6 +21,7 @@ import { OccasionPage } from './pages/occasionPage';
 import { RecipientPage } from './pages/recipientPage';
 import HomeFlashSaleBanner from './components/test';
 import { Wishlist } from './pages/wishlist';
+import Profileside from './pages/profileSidebar';
 
 const Layout = ({ children, setNavCategory }) => {
   return (
@@ -57,11 +58,11 @@ function App() {
                 <Route path="/recipients/:recipientName" element={<RecipientPage />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path='/wishlist' element={<Wishlist />}/>
-                <Route path="/profile" element={<Profile />} />
+                <Route path="/profile" element={<Profileside />} />
                 <Route path='/orders' element={<OrderHistory />} />
                 <Route path="/order/:orderId" element={<OrderDetail />}/>
-                <Route path="order-confirmation" element={<OrderConfirmation />}/>
-                <Route path='wallet' element={<Wallet />}/>
+                <Route path="/order-confirmation" element={<OrderConfirmation />}/>
+                <Route path='/wallet' element={<Wallet />}/>
               </Routes>
             </Layout>
           }

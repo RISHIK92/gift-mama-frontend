@@ -49,7 +49,7 @@ const CategoryDropdown = ({setNavCategory, navigate}) => {
       </button>
       
       {isHovered && (
-        <div className="absolute top-full -left-8 bg-white rounded-lg shadow-xl w-[900px] p-8 z-20 grid grid-cols-4 gap-8 border border-gray-100 animate-fadeIn">
+        <div className="absolute top-full -left-8 bg-white rounded-lg shadow-xl w-[900px] p-8 z-50 grid grid-cols-4 gap-8 border border-gray-100 animate-fadeIn">
           <div className="col-span-1">
             {productsLoading ? (
               <div className="bg-gray-100 rounded-lg w-full h-64 flex items-center justify-center text-gray-500 shadow-inner">

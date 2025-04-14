@@ -143,11 +143,10 @@ export const OrderHistory = () => {
                     <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
                   </div>
                   <div className="flex items-center">
-                    <p className="font-bold text-red-500">{order.currency} {order.summary.total + order.summary.deliveryFee + order.summary.tax}</p>
+                    <p className="font-bold text-red-500">{order.currency} {parseInt(order.summary.total) + parseInt(order.summary.deliveryFee) + parseInt(order.summary.tax)}</p>
                   </div>
                 </div>
                 
-                {/* Status badges */}
                 <div className="flex flex-wrap gap-2 mb-3">
                   {renderPaymentStatusBadge(order.status)}
                   {renderDeliveryStatusBadge(order.delivery)}
