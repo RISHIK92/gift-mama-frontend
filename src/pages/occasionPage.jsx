@@ -4,6 +4,7 @@ import { Advert } from "../components/advert";
 import useProducts from "../hooks/useProduct";
 import useHomes from "../hooks/useHome";
 import useAllCategories from "../hooks/useAllCategories";
+import { useTestimonials } from "../hooks/useTestimonials";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { ShoppingBag, Gift, ChevronRight, Tag, ArrowUpDown, Filter } from "lucide-react";
@@ -12,6 +13,7 @@ export function OccasionPage() {
   const { products } = useProducts();
   const { home } = useHomes();
   const { allOccasions } = useAllCategories();
+  const { testimonials, loading: testimonialsLoading, error: testimonialsError } = useTestimonials();
   const { occasionName } = useParams();
   const [sortOption, setSortOption] = useState("default");
   const navigate = useNavigate();
@@ -222,29 +224,55 @@ export function OccasionPage() {
           <h2 className="text-3xl font-bold mb-4">What Our Customers Say</h2>
           <p className="text-gray-600 max-w-lg mx-auto">Discover why our {occasionName} gifts are loved by customers across the country</p>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map((index) => (
-            <div key={index} className="bg-gray-50 p-6 rounded-xl">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-gray-200 rounded-full mr-4"></div>
-                <div>
-                  <h4 className="font-medium">Customer {index}</h4>
-                  <div className="flex text-yellow-400">
-                    {[...Array(5)].map((_, i) => (
-                      <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                      </svg>
-                    ))}
+        {console.log(testimonials)}
+        {testimonialsLoading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto"></div>
+          </div>
+        ) : testimonialsError ? (
+          <div className="text-center py-8 text-red-500">
+            Error loading testimonials. Please try again later.
+          </div>
+        ) : testimonials.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {testimonials.map((testimonial) => (
+              <div key={testimonial.id} className="bg-gray-50 p-6 rounded-xl">
+                <div className="flex items-center mb-4">
+                  {testimonial.imageUrl ? (
+                    <img 
+                      src={testimonial.imageUrl} 
+                      alt={testimonial.name}
+                      className="w-12 h-12 rounded-full mr-4 object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-gray-200 rounded-full mr-4 flex items-center justify-center">
+                      <span className="text-gray-500 text-lg font-medium">
+                        {testimonial.name.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="font-medium">{testimonial.name}</h4>
+                    <div className="flex text-yellow-400">
+                      {[...Array(testimonial.rating)].map((_, i) => (
+                        <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                        </svg>
+                      ))}
+                    </div>
                   </div>
                 </div>
+                <p className="text-gray-600">
+                  {testimonial.content}
+                </p>
               </div>
-              <p className="text-gray-600">
-                "The {occasionName} gift I purchased was perfect. Fast delivery and beautiful packaging. Will definitely shop again!"
-              </p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            No testimonials available yet.
+          </div>
+        )}
       </div>
     </div>
   );

@@ -31,7 +31,7 @@ export const HeroBanner = () => {
 
   if (loading) {
     return (
-      <div className="relative w-full h-[640px] flex items-center justify-center bg-gray-200 animate-pulse">
+      <div className="relative w-full aspect-[16/9] md:h-[640px] flex items-center justify-center bg-gray-200 animate-pulse">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-gray-900"></div>
       </div>
     );
@@ -39,7 +39,7 @@ export const HeroBanner = () => {
 
   if (error) {
     return (
-      <div className="relative w-full h-[640px] flex flex-col items-center justify-center bg-gray-100">
+      <div className="relative w-full aspect-[16/9] md:h-[640px] flex flex-col items-center justify-center bg-gray-100">
         <AlertCircle className="text-red-500 h-12 w-12 animate-bounce" />
         <h3 className="text-xl font-semibold text-gray-800 mt-4">Failed to load banner</h3>
         <p className="text-gray-600 mb-6">{error}</p>
@@ -55,7 +55,7 @@ export const HeroBanner = () => {
 
   if (images.length === 0) {
     return (
-      <div className="relative w-full h-[640px] flex flex-col items-center justify-center bg-gray-100">
+      <div className="relative w-full aspect-[16/9] md:h-[640px] flex flex-col items-center justify-center bg-gray-100">
         <Image className="text-gray-400 h-16 w-16 animate-pulse" />
         <h3 className="text-xl font-semibold text-gray-700 mt-4">No banner images available</h3>
         <p className="text-gray-500">Please add banner images in the admin panel</p>
@@ -64,7 +64,7 @@ export const HeroBanner = () => {
   }
 
   return (
-    <div className="relative w-full h-[640px] overflow-hidden">
+    <div className="relative w-full aspect-[16/9] md:h-[640px] overflow-hidden">
       {images.map((image, index) => (
         <div 
           key={index} 
@@ -86,34 +86,34 @@ export const HeroBanner = () => {
             </div>
           )}
           <div className="absolute inset-0 bg-black bg-opacity-5 flex flex-col items-center justify-center text-white text-center px-4">
-            <h2 className="text-5xl font-bold">{titles[index] || ""}</h2>
-            <p className="text-2xl">{subtitles[index] || ""}</p>
+            <h2 className="text-3xl md:text-5xl font-bold">{titles[index] || ""}</h2>
+            <p className="text-xl md:text-2xl mt-2">{subtitles[index] || ""}</p>
           </div>
         </div>
       ))}
 
       <button
         onClick={prevSlide}
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-3 rounded-full transition-opacity duration-300"
+        className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 md:p-3 rounded-full transition-opacity duration-300"
         aria-label="Previous slide"
       >
-        <ChevronLeft className="h-6 w-6" />
+        <ChevronLeft className="h-4 w-4 md:h-6 md:w-6" />
       </button>
 
       <button
         onClick={nextSlide}
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-3 rounded-full transition-opacity duration-300"
+        className="absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 md:p-3 rounded-full transition-opacity duration-300"
         aria-label="Next slide"
       >
-        <ChevronRight className="h-6 w-6" />
+        <ChevronRight className="h-4 w-4 md:h-6 md:w-6" />
       </button>
 
-      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-2">
+      <div className="absolute bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-2">
         {images.map((_, index) => (
           <button
             key={index}
             onClick={() => setCurrentImage(index)}
-            className={`w-3 h-3 rounded-full transition-all duration-300 ${
+            className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${
               currentImage === index ? "bg-white scale-125 shadow-lg" : "bg-white/50 hover:bg-white/80"
             }`}
             aria-label={`Go to slide ${index + 1}`}
