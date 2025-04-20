@@ -108,8 +108,8 @@ const CustomizationPreview = ({ productId, onClose }) => {
 
     return new Promise((resolve) => {
       canvas.toBlob((blob) => {
-        resolve(URL.createObjectURL(blob));
-      }, 'image/jpeg', 1);
+        resolve(blob);
+      }, 'image/jpeg', 0.9); // Adjust quality here (0.9 = 90%)
     });
   };
 
@@ -117,28 +117,30 @@ const CustomizationPreview = ({ productId, onClose }) => {
     if (!imageRef || !crop.width || !crop.height) return;
 
     try {
-      const croppedImageUrl = await getCroppedImg(imageRef, crop);
+      const croppedImageBlob = await getCroppedImg(imageRef, crop);
       
       setIsUploading(true);
       const formData = new FormData();
-      const response = await fetch(croppedImageUrl);
-      const blob = await response.blob();
-      formData.append('image', blob);
+      formData.append('image', croppedImageBlob, 'custom-image.jpg');
       formData.append('productId', productId);
 
-      const uploadResponse = await axios.post(`${BACKEND_URL}upload/custom-image-direct`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      const uploadResponse = await axios.post(
+        `${BACKEND_URL}upload/custom-image-direct`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
         }
-      });
+      );
 
       setCustomImageUrl(uploadResponse.data.imageUrl);
       setSrc(null);
       alert('Image uploaded successfully!');
     } catch (error) {
       console.error('Error processing image:', error);
-      alert('Failed to process image. Please try again.');
+      alert(error.response?.data?.message || 'Failed to process image. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -157,16 +159,20 @@ const CustomizationPreview = ({ productId, onClose }) => {
 
       setLoading(true);
       
-      const response = await axios.post(`${BACKEND_URL}cart/add-customized`, {
-        productId,
-        customizations: [{
-          imageUrl: customImageUrl
-        }]
-      }, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      const response = await axios.post(
+        `${BACKEND_URL}cart/add-customized`,
+        {
+          productId,
+          customizations: [{
+            imageUrl: customImageUrl
+          }]
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
         }
-      });
+      );
       
       alert("Custom product added to cart!");
       onClose();
