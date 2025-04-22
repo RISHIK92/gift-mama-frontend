@@ -257,7 +257,7 @@ const LocationModal = ({ onClose, onAllowLocation, onManualEntry }) => {
         
         {!showManualInputs ? (
           <div className="space-y-4">
-            <button 
+            <button
               onClick={() => setShowManualInputs(true)}
               className="w-full border border-red-500 text-red-500 py-3 rounded-lg hover:bg-red-50 transition-colors"
             >
