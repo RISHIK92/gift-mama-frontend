@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, X, Plus, Trash, Info } from 'lucide-react';
+import { Upload, X, Plus, Trash, Info, Image, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import { BACKEND_URL } from '../Url';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
-// Shape masking utility
 const createShapeMask = (ctx, width, height, shape) => {
   ctx.beginPath();
   
@@ -43,9 +42,45 @@ const createShapeMask = (ctx, width, height, shape) => {
   ctx.clip();
 };
 
+const getShapePath = (shape, width, height, x, y) => {
+  const centerX = x + width / 2;
+  const centerY = y + height / 2;
+  
+  // Fix for handling "retangle" typo from API
+  const normalizedShape = shape === 'retangle' ? 'rectangle' : shape;
+  
+  switch(normalizedShape) {
+    case 'circle':
+      const radius = Math.min(width, height) / 2;
+      return `M ${centerX} ${centerY} m -${radius}, 0 a ${radius},${radius} 0 1,0 ${radius*2},0 a ${radius},${radius} 0 1,0 -${radius*2},0`;
+      
+    case 'hexagon':
+      const sideLength = Math.min(width, height) / 2;
+      let path = '';
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * 2 * Math.PI / 6) - (Math.PI/6);
+        const pointX = centerX + sideLength * Math.cos(angle);
+        const pointY = centerY + sideLength * Math.sin(angle);
+        path += (i === 0 ? 'M' : 'L') + ` ${pointX} ${pointY}`;
+      }
+      return path + ' Z';
+      
+    case 'triangle':
+      return `M ${centerX} ${y} L ${x + width} ${y + height} L ${x} ${y + height} Z`;
+      
+    default: // rectangle
+      return `M ${x} ${y} L ${x + width} ${y} L ${x + width} ${y + height} L ${x} ${y + height} Z`;
+  }
+};
+
 const CustomizationPreview = ({ productId, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [productDetails, setProductDetails] = useState(null);
+  
+  // Templates 
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  
   const [customImages, setCustomImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [currentAreaIndex, setCurrentAreaIndex] = useState(0);
@@ -54,24 +89,58 @@ const CustomizationPreview = ({ productId, onClose }) => {
   const [completedCrop, setCompletedCrop] = useState(null);
   const imgRef = useRef(null);
   const previewCanvasRef = useRef(null);
+  const svgContainerRef = useRef(null);
+  const token = localStorage.getItem('token');
 
-  // Load product data
+  // Load product data and templates
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${BACKEND_URL}products/${productId}/customized-preview`);
+        
+        // Fetch product details
+        const productResponse = await axios.get(
+          `${BACKEND_URL}products/${productId}/customized-preview`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
         
         setProductDetails({
-          id: response.data.id,
-          name: response.data.name,
-          svgData: response.data.svgData,
-          customizableAreas: response.data.customizableAreas || []
+          id: productResponse.data.id,
+          name: productResponse.data.name,
         });
         
-        if (response.data.customizableAreas && response.data.customizableAreas.length > 0) {
-          setCustomImages(response.data.customizableAreas.map(() => null));
-          initCrop(response.data.customizableAreas[0]);
+        // Fetch templates for the product
+        try {
+          const templatesResponse = await axios.get(`${BACKEND_URL}products/${productId}/templates`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          
+          setTemplates(templatesResponse.data);
+          
+          // Set initial template
+          if (templatesResponse.data.length > 0) {
+            const firstTemplate = templatesResponse.data[0];
+            setSelectedTemplate(firstTemplate);
+            
+            // Initialize customImages array for the template's customizable areas
+            // Handle case where template has no customizable areas
+            const areaCount = firstTemplate.customizableAreas?.length || 0;
+            setCustomImages(Array(areaCount).fill(null));
+            
+            // Only initialize crop if there are customizable areas
+            if (areaCount > 0) {
+              initCrop(firstTemplate.customizableAreas[0]);
+            }
+          }
+        } catch (err) {
+          console.error(`Error fetching templates:`, err);
+          setTemplates([]);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -84,11 +153,17 @@ const CustomizationPreview = ({ productId, onClose }) => {
     fetchData();
   }, [productId]);
 
+  // Initialize crop when template or area changes
   const initCrop = (area) => {
+    if (!area) return;
+    
     let aspect;
     let circularCrop = false;
     
-    switch (area.shape) {
+    // Fix for handling "retangle" typo from API
+    const normalizedShape = area.shape === 'retangle' ? 'rectangle' : area.shape;
+    
+    switch (normalizedShape) {
       case 'circle':
         aspect = 1;
         circularCrop = true;
@@ -112,24 +187,43 @@ const CustomizationPreview = ({ productId, onClose }) => {
     });
   };
 
-  useEffect(() => {
-    if (productDetails?.customizableAreas && productDetails.customizableAreas[currentAreaIndex]) {
-      initCrop(productDetails.customizableAreas[currentAreaIndex]);
+  // Handle template selection
+  const handleTemplateSelect = (template) => {
+    setSelectedTemplate(template);
+    
+    // Handle case where template has no customizable areas
+    const areaCount = template.customizableAreas?.length || 0;
+    setCustomImages(Array(areaCount).fill(null));
+    
+    // Reset current area index
+    setCurrentAreaIndex(0);
+    
+    // Only initialize crop if there are customizable areas
+    if (areaCount > 0) {
+      initCrop(template.customizableAreas[0]);
     }
-  }, [currentAreaIndex, productDetails]);
+    
+    // Reset any active image cropping
+    setImageSrc(null);
+    setCompletedCrop(null);
+  };
 
+  // Handle image upload
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    const validTypes = ['image/jpeg', 'image/png'];
+    const currentArea = selectedTemplate.customizableAreas[currentAreaIndex];
+    const validTypes = currentArea.allowedFormats || ['image/jpeg', 'image/png'];
+    
     if (!validTypes.includes(file.type)) {
-      alert('Please upload a JPG or PNG image');
+      alert(`Please upload a ${validTypes.map(f => f.split('/')[1].toUpperCase()).join(' or ')} image`);
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size should be less than 5MB');
+    const maxSize = (currentArea.maxFileSizeMB || 5) * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(`Image size should be less than ${currentArea.maxFileSizeMB || 5}MB`);
       return;
     }
 
@@ -142,63 +236,86 @@ const CustomizationPreview = ({ productId, onClose }) => {
   };
 
   const applyCustomCrop = async () => {
-    if (!completedCrop || !imgRef.current) return;
-
+    if (!completedCrop || !imgRef.current || !selectedTemplate) return;
+  
     const image = imgRef.current;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    const shape = productDetails.customizableAreas[currentAreaIndex].shape;
-
-    // Set canvas dimensions
-    canvas.width = completedCrop.width;
-    canvas.height = completedCrop.height;
-
+    const area = selectedTemplate.customizableAreas[currentAreaIndex];
+    
+    // Fix for handling "retangle" typo from API and ensure shape is defined
+    const shape = area.shape === 'retangle' ? 'rectangle' : (area.shape || 'rectangle');
+  
+    // Set canvas dimensions - ensure they're valid numbers
+    const cropWidth = Math.max(1, Math.round(completedCrop.width));
+    const cropHeight = Math.max(1, Math.round(completedCrop.height));
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+  
     // Apply shape mask
     createShapeMask(ctx, canvas.width, canvas.height, shape);
-
+  
     // Calculate scale factors
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
-
+  
+    // Calculate source dimensions - ensure they're within bounds
+    const srcX = Math.max(0, Math.round(completedCrop.x * scaleX));
+    const srcY = Math.max(0, Math.round(completedCrop.y * scaleY));
+    const srcWidth = Math.min(
+      image.naturalWidth - srcX, 
+      Math.round(completedCrop.width * scaleX)
+    );
+    const srcHeight = Math.min(
+      image.naturalHeight - srcY, 
+      Math.round(completedCrop.height * scaleY)
+    );
+  
     // Draw the cropped image
     ctx.drawImage(
       image,
-      completedCrop.x * scaleX,
-      completedCrop.y * scaleY,
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
+      srcX,
+      srcY,
+      srcWidth,
+      srcHeight,
       0,
       0,
-      completedCrop.width,
-      completedCrop.height
+      cropWidth,
+      cropHeight
     );
-
+  
     // Convert to blob and upload
     canvas.toBlob(async (blob) => {
+      if (!blob) {
+        console.error('Failed to create blob from canvas');
+        return;
+      }
+  
       try {
         setIsUploading(true);
         const formData = new FormData();
         formData.append('image', blob, 'custom-image.png');
         formData.append('productId', productId);
-        formData.append('areaIndex', currentAreaIndex);
-
+        formData.append('templateId', selectedTemplate.id);
+        formData.append('areaId', area.id);
+        formData.append('width', cropWidth);
+        formData.append('height', cropHeight);
+        formData.append('shape', shape);
+  
         const response = await axios.post(
-          `${BACKEND_URL}upload/custom-image-direct`,
+          `${BACKEND_URL}upload/custom-image`,
           formData,
           {
             headers: {
               'Content-Type': 'multipart/form-data',
-              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
           }
         );
-
+  
         // Update state with new image
         const newCustomImages = [...customImages];
-        newCustomImages[currentAreaIndex] = {
-          imageUrl: response.data.imageUrl,
-          areaIndex: currentAreaIndex
-        };
+        newCustomImages[currentAreaIndex] = response.data;
         setCustomImages(newCustomImages);
         setImageSrc(null);
       } catch (error) {
@@ -207,44 +324,62 @@ const CustomizationPreview = ({ productId, onClose }) => {
       } finally {
         setIsUploading(false);
       }
-    }, 'image/png', 0.95); // 95% quality
+    }, 'image/png', 0.95);
   };
 
-  const handleRemoveImage = (areaIndex) => {
-    const newCustomImages = [...customImages];
-    newCustomImages[areaIndex] = null;
-    setCustomImages(newCustomImages);
-  };
-
+  // Add to cart with customizations
   const addToCartWithCustomization = async () => {
     try {
-      const hasCustomImage = customImages.some(img => img !== null);
-      if (!hasCustomImage) {
-        alert('Please upload at least one image');
-        return;
+      // Only check for custom images if the template has customizable areas
+      const hasCustomizableAreas = selectedTemplate?.customizableAreas?.length > 0;
+      
+      if (hasCustomizableAreas) {
+        const hasCustomImage = customImages.some(img => img !== null);
+        if (!hasCustomImage) {
+          alert('Please upload at least one image');
+          return;
+        }
       }
 
       setLoading(true);
       
-      const customizations = customImages
-        .filter(img => img !== null)
-        .map((img, index) => ({
-          imageUrl: img.imageUrl,
-          areaIndex: img.areaIndex
-        }));
+      // Create cart item with template ID
+      const cartData = {
+        productId,
+        customTemplateId: selectedTemplate.id
+      };
       
-      const response = await axios.post(
+      // First create cart item
+      const cartResponse = await axios.post(
         `${BACKEND_URL}cart/add-customized`,
-        {
-          productId,
-          customizations
-        },
+        cartData,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            'Authorization': `Bearer ${token}`
           }
         }
       );
+      
+      // Only link uploads if there are custom images
+      if (customImages.length > 0) {
+        // Get all uploaded image IDs
+        const uploadIds = customImages
+          .filter(img => img !== null)
+          .map(img => img.id);
+        
+        if (uploadIds.length > 0) {
+          // Then associate uploads with cart item
+          await axios.post(
+            `${BACKEND_URL}cart/${cartResponse.data.id}/link-uploads`,
+            { uploadIds },
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            }
+          );
+        }
+      }
       
       alert("Custom product added to cart!");
       onClose();
@@ -256,38 +391,36 @@ const CustomizationPreview = ({ productId, onClose }) => {
     }
   };
 
-  // Fixed getShapePath function to properly position shapes
-  const getShapePath = (shape, width, height, x, y) => {
-    // x and y are the top-left coordinates of the shape
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
+  // Function to handle image load event
+  const onImageLoad = (e) => {
+    imgRef.current = e.currentTarget;
+  };
+
+  // Function to remove uploaded image
+  const removeImage = (index) => {
+    const newCustomImages = [...customImages];
+    newCustomImages[index] = null;
+    setCustomImages(newCustomImages);
+  };
+
+  // Function to cancel current crop
+  const cancelCrop = () => {
+    setImageSrc(null);
+    setCompletedCrop(null);
+  };
+
+  // Navigate between customizable areas
+  const navigateArea = (direction) => {
+    const newIndex = direction === 'next' 
+      ? (currentAreaIndex + 1) % customImages.length
+      : (currentAreaIndex - 1 + customImages.length) % customImages.length;
     
-    switch(shape) {
-      case 'circle':
-        const radius = Math.min(width, height) / 2;
-        return `M ${centerX} ${centerY} m -${radius}, 0 a ${radius},${radius} 0 1,0 ${radius*2},0 a ${radius},${radius} 0 1,0 -${radius*2},0`;
-        
-      case 'hexagon':
-        const sideLength = Math.min(width, height) / 2;
-        let path = '';
-        for (let i = 0; i < 6; i++) {
-          const angle = (i * 2 * Math.PI / 6) - (Math.PI/6);
-          const pointX = centerX + sideLength * Math.cos(angle);
-          const pointY = centerY + sideLength * Math.sin(angle);
-          path += (i === 0 ? 'M' : 'L') + ` ${pointX} ${pointY}`;
-        }
-        return path + ' Z';
-        
-      case 'triangle':
-        return `M ${centerX} ${y} L ${x + width} ${y + height} L ${x} ${y + height} Z`;
-        
-      default: // rectangle
-        return `M ${x} ${y} L ${x + width} ${y} L ${x + width} ${y + height} L ${x} ${y + height} Z`;
-    }
+    setCurrentAreaIndex(newIndex);
+    initCrop(selectedTemplate.customizableAreas[newIndex]);
   };
 
   const generateProductSVG = () => {
-    if (!productDetails?.svgData) return null;
+    if (!selectedTemplate || !selectedTemplate.svgData) return null;
   
     return (
       <svg 
@@ -297,25 +430,35 @@ const CustomizationPreview = ({ productId, onClose }) => {
         width="100%" 
         height="100%"
         preserveAspectRatio="xMidYMid meet"
+        style={{ maxHeight: '100%', objectFit: 'contain' }}
       >
+        {/* Base template image - Use URL directly from template */}
+        <image 
+          width="1500" 
+          height="2100" 
+          xlinkHref={selectedTemplate.svgData}
+        />
+        
+        {/* Custom images */}
         {customImages.map((img, idx) => {
-          if (!img) return null;
+          if (!img || !selectedTemplate.customizableAreas[idx]) return null;
           
-          const area = productDetails.customizableAreas[idx];
-          const centerX = area.centerX === 0 ? 750 : area.centerX;  // Default to center if 0
-          const centerY = area.centerY === 0 ? 1050 : area.centerY; // Default to center if 0
+          const area = selectedTemplate.customizableAreas[idx];
+          const centerX = area.centerX || 750;
+          const centerY = area.centerY || 1050;
           const width = area.width || 400;
           const height = area.height || 400;
-          
-          // Calculate top-left corner for positioning
           const x = centerX - width/2;
           const y = centerY - height/2;
+          
+          // Fix for handling "retangle" typo from API
+          const normalizedShape = area.shape === 'retangle' ? 'rectangle' : area.shape;
           
           return (
             <g key={`custom-image-${idx}`}>
               <defs>
                 <clipPath id={`shape-clip-${idx}`}>
-                  <path d={getShapePath(area.shape, width, height, x, y)} />
+                  <path d={getShapePath(normalizedShape, width, height, x, y)} />
                 </clipPath>
               </defs>
               
@@ -327,30 +470,18 @@ const CustomizationPreview = ({ productId, onClose }) => {
                 xlinkHref={img.imageUrl}
                 clipPath={`url(#shape-clip-${idx})`}
                 preserveAspectRatio="xMidYMid slice"
+                transform={`
+                  rotate(${img.rotation || 0} ${centerX} ${centerY})
+                  scale(${img.scale || 1})
+                  translate(${img.positionX || 0} ${img.positionY || 0})
+                `}
               />
             </g>
           );
         })}
-        
-        <image 
-          width="1500" 
-          height="2100" 
-          xlinkHref={productDetails.svgData}
-        />
       </svg>
     );
   };
-
-  if (loading && !productDetails) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl p-6 text-center">
-          <div className="animate-spin w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-3"></div>
-          <p className="text-lg font-medium text-gray-700">Loading customization...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
@@ -363,46 +494,95 @@ const CustomizationPreview = ({ productId, onClose }) => {
               Customize {productDetails?.name || 'Product'}
             </h2>
           </div>
-          <button 
-            onClick={onClose} 
-            className="p-1 hover:bg-red-50 text-red-600 rounded-full transition-colors"
-            aria-label="Close"
-          >
+          <button onClick={onClose} className="p-1 hover:bg-red-50 text-red-600 rounded-full transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
         
         {/* Content Area */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
           {/* Preview Area */}
-          <div className="w-3/5 p-4 flex flex-col">
+          <div className="w-full md:w-3/5 p-4 flex flex-col">
+            {/* Template Selection */}
+            {templates.length > 1 && (
+              <div className="mb-4">
+                <div className="flex items-center mb-2">
+                  <div className="w-1 h-5 bg-red-600 rounded-full mr-2"></div>
+                  <h3 className="text-lg font-bold text-gray-800">Design Templates</h3>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {templates.map(template => (
+                    <button
+                      key={template.id}
+                      onClick={() => handleTemplateSelect(template)}
+                      className={`flex-shrink-0 p-2 border rounded-lg ${
+                        selectedTemplate?.id === template.id 
+                          ? 'border-red-400 bg-red-50' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-xs font-medium mt-1 truncate">{template.name}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <div className="flex items-center mb-2">
               <div className="w-1 h-5 bg-red-600 rounded-full mr-2"></div>
               <h3 className="text-lg font-bold text-gray-800">Preview</h3>
             </div>
             
-            <div className="flex-1 border border-red-100 rounded-lg bg-white flex items-center justify-center overflow-hidden">
-              {productDetails?.svgData ? (
-                <div className="relative w-full h-full">
+            <div 
+              className="flex-1 border border-red-100 rounded-lg bg-white flex items-center justify-center overflow-hidden"
+              ref={svgContainerRef}
+            >
+              {selectedTemplate ? (
+                <div className="relative w-full h-full flex items-center justify-center">
                   {generateProductSVG()}
                 </div>
               ) : (
-                <div className="text-gray-500">Loading preview...</div>
+                <div className="text-gray-500">
+                  Select a template to preview
+                </div>
               )}
             </div>
             
-            {/* Customizable Areas Selection */}
-            {productDetails?.customizableAreas && productDetails.customizableAreas.length > 1 && (
+            {/* Customizable Areas Selection - Only show if template has areas */}
+            {selectedTemplate?.customizableAreas && selectedTemplate.customizableAreas.length > 0 && (
               <div className="mt-3 border-t pt-2">
-                <div className="flex items-center mb-2">
-                  <div className="w-1 h-4 bg-red-600 rounded-full mr-2"></div>
-                  <h4 className="text-sm font-medium text-gray-800">Customizable Areas</h4>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <div className="w-1 h-4 bg-red-600 rounded-full mr-2"></div>
+                    <h4 className="text-sm font-medium text-gray-800">Customizable Areas</h4>
+                  </div>
+                  {customImages.length > 1 && (
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => navigateArea('prev')}
+                        className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                        disabled={currentAreaIndex === 0}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => navigateArea('next')}
+                        className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                        disabled={currentAreaIndex === customImages.length - 1}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {productDetails.customizableAreas.map((area, index) => (
+                  {selectedTemplate.customizableAreas.map((area, index) => (
                     <button
                       key={`area-${index}`}
-                      onClick={() => setCurrentAreaIndex(index)}
+                      onClick={() => {
+                        setCurrentAreaIndex(index);
+                        initCrop(selectedTemplate.customizableAreas[index]);
+                      }}
                       className={`px-3 py-1 text-xs rounded-full ${
                         currentAreaIndex === index 
                           ? 'bg-red-100 border border-red-300 text-red-700' 
@@ -410,9 +590,9 @@ const CustomizationPreview = ({ productId, onClose }) => {
                       }`}
                     >
                       <div className="flex items-center gap-1">
-                        <span>Area {index + 1}</span>
+                        <span>{area.name || `Area ${index + 1}`}</span>
                         {customImages[index] && (
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <Check className="w-3 h-3 text-green-500" />
                         )}
                       </div>
                     </button>
@@ -423,183 +603,187 @@ const CustomizationPreview = ({ productId, onClose }) => {
           </div>
           
           {/* Upload Area */}
-          <div className="w-2/5 p-4 border-l flex flex-col">
-            {productDetails?.customizableAreas && productDetails.customizableAreas.length > 0 && (
+          <div className="w-full md:w-2/5 p-4 border-t md:border-t-0 md:border-l flex flex-col">
+            {selectedTemplate?.customizableAreas && selectedTemplate.customizableAreas.length > 0 ? (
               <>
-                <div className="flex items-center mb-2">
-                  <div className="w-1 h-5 bg-red-600 rounded-full mr-2"></div>
-                  <h3 className="text-lg font-bold text-gray-800">
-                    {productDetails.customizableAreas.length > 1 
-                      ? `Upload Image (Area ${currentAreaIndex + 1})` 
-                      : 'Upload Image'}
-                  </h3>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <div className="w-1 h-5 bg-red-600 rounded-full mr-2"></div>
+                    <h3 className="text-lg font-bold text-gray-800">
+                      {selectedTemplate.customizableAreas[currentAreaIndex]?.name || 
+                      (selectedTemplate.customizableAreas.length > 1 
+                        ? `Upload Image (Area ${currentAreaIndex + 1})` 
+                        : 'Upload Image')}
+                    </h3>
+                  </div>
+                  {customImages.length > 1 && (
+                    <div className="flex gap-1 md:hidden">
+                      <button 
+                        onClick={() => navigateArea('prev')}
+                        className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                        disabled={currentAreaIndex === 0}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => navigateArea('next')}
+                        className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                        disabled={currentAreaIndex === customImages.length - 1}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 
-                <div className="flex-1 overflow-hidden">
-                  <div className={`border rounded-lg p-3 h-full flex flex-col ${
-                    customImages[currentAreaIndex] ? 'border-green-300 bg-green-50' : 'border-gray-200'
-                  }`}>
-                    {imageSrc ? (
-                      <div className="flex flex-col h-full">
-                        <div className="mb-3 pb-3 border-b border-gray-200">
-                          <div className="text-sm font-medium text-gray-700 mb-2">
-                            Shape: {productDetails.customizableAreas[currentAreaIndex]?.shape.charAt(0).toUpperCase() + 
-                                    productDetails.customizableAreas[currentAreaIndex]?.shape.slice(1)}
-                          </div>
-                        </div>
-                        
-                        <div className="flex-1 overflow-hidden">
-                          <div className="w-full h-full flex items-center justify-center">
-                            <ReactCrop
-                              crop={crop}
-                              onChange={(c) => setCrop(c)}
-                              onComplete={(c) => setCompletedCrop(c)}
-                              aspect={crop?.aspect}
-                              ruleOfThirds
-                              circularCrop={productDetails.customizableAreas[currentAreaIndex].shape === 'circle'}
-                            >
-                              <img
-                                ref={imgRef}
-                                alt="Crop me"
-                                src={imageSrc}
-                                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                                onLoad={() => {
-                                  if (productDetails?.customizableAreas && productDetails.customizableAreas[currentAreaIndex]) {
-                                    initCrop(productDetails.customizableAreas[currentAreaIndex]);
-                                  }
-                                }}
-                              />
-                            </ReactCrop>
-                          </div>
-                        </div>
-                        
-                        <div className="flex gap-2 mt-3">
-                          <button
-                            onClick={() => setImageSrc(null)}
-                            className="flex-1 py-2 px-3 bg-white border border-gray-300 rounded text-sm font-medium hover:bg-gray-50 transition-colors"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={applyCustomCrop}
-                            className="flex-1 py-2 px-3 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700 transition-colors"
-                            disabled={isUploading || !completedCrop}
-                          >
-                            {isUploading ? 'Uploading...' : 'Apply Image'}
-                          </button>
-                        </div>
+                {selectedTemplate.customizableAreas[currentAreaIndex]?.description && (
+                  <div className="mb-3 text-sm text-gray-600 bg-blue-50 p-2 rounded flex items-start gap-2">
+                    <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <span>{selectedTemplate.customizableAreas[currentAreaIndex].description}</span>
+                  </div>
+                )}
+                
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  {/* If image is being cropped */}
+                  {imageSrc ? (
+                    <div className="flex-1 flex flex-col">
+                      <div className="mb-2 text-sm bg-yellow-50 p-2 rounded flex gap-1 items-center">
+                        <Info className="w-4 h-4 text-yellow-600" />
+                        <span>Drag to adjust the crop area for your image</span>
                       </div>
-                    ) : customImages[currentAreaIndex] ? (
-                      <div className="flex flex-col h-full">
-                        <div className="flex-1 flex items-center justify-center p-2">
-                          <div className="relative w-full max-h-full">
-                            <img 
-                              src={customImages[currentAreaIndex].imageUrl} 
-                              alt="Custom upload" 
-                              className="object-contain max-w-full max-h-full mx-auto rounded" 
-                            />
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveImage(currentAreaIndex)}
-                          className="mt-3 py-2 px-3 bg-white border border-red-300 text-red-600 rounded text-sm font-medium hover:bg-red-50 transition-colors flex items-center justify-center gap-1"
+                      
+                      <div className="flex-1 overflow-auto mb-3 bg-gray-100 flex items-center justify-center">
+                        <ReactCrop
+                          crop={crop}
+                          onChange={(c) => setCrop(c)}
+                          onComplete={(c) => setCompletedCrop(c)}
+                          aspect={crop?.aspect}
+                          circularCrop={crop?.circularCrop}
                         >
-                          <Trash className="w-4 h-4" />
-                          <span>Remove Image</span>
+                          <img
+                            ref={imgRef}
+                            alt="Crop preview"
+                            src={imageSrc}
+                            onLoad={onImageLoad}
+                            className="max-w-full max-h-64 object-contain"
+                          />
+                        </ReactCrop>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <button
+                          onClick={cancelCrop}
+                          className="flex-1 py-2 px-3 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-100 transition-colors flex items-center justify-center gap-1"
+                        >
+                          <X className="w-4 h-4" />
+                          <span>Cancel</span>
+                        </button>
+                        <button
+                          onClick={applyCustomCrop}
+                          disabled={!completedCrop}
+                          className="flex-1 py-2 px-3 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                        >
+                          {isUploading ? (
+                            <span>Uploading...</span>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4" />
+                              <span>Apply & Upload</span>
+                            </>
+                          )}
                         </button>
                       </div>
-                    ) : (
-                        <div className="h-full flex items-center justify-center">
-                          <label htmlFor={`file-upload-${currentAreaIndex}`} className="cursor-pointer w-full">
-                            <div className="border-2 border-dashed border-gray-300 rounded p-6 text-center hover:border-red-300 transition-colors">
-                              <div className="flex flex-col items-center">
-                                <Upload className="w-10 h-10 text-gray-400 mb-2" />
-                                <div className="text-sm font-medium text-gray-700">
-                                  Upload an image
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  JPG or PNG, max 5MB
-                                </p>
-                                <div 
-                                  className="mt-4 py-2 px-4 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700 transition-colors flex items-center"
-                                >
-                                  <Plus className="w-4 h-4 mr-1" />
-                                  Select Image
-                                </div>
-                              </div>
-                            </div>
-                            <input 
-                              id={`file-upload-${currentAreaIndex}`}
-                              type="file" 
-                              className="hidden" 
-                              accept="image/jpeg, image/png"
-                              onChange={handleImageUpload}
-                            />
-                          </label>
+                    </div>
+                  ) : customImages[currentAreaIndex] ? (
+                    <div className="flex-1 flex flex-col">
+                      <div className="bg-green-50 p-3 rounded mb-3 flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-sm text-green-800">Image uploaded successfully</span>
+                      </div>
+                      
+                      <div className="flex-1 flex items-center justify-center bg-gray-100 mb-3 p-4">
+                        <div className="relative">
+                          <img 
+                            src={customImages[currentAreaIndex].imageUrl} 
+                            alt="Uploaded image" 
+                            className="max-w-full max-h-48 object-contain rounded"
+                          />
                         </div>
-                    )}
-                  </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => removeImage(currentAreaIndex)}
+                        className="py-2 px-3 border border-red-300 text-red-700 bg-red-50 rounded font-medium hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Trash className="w-4 h-4" />
+                        <span>Remove & Upload New</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50">
+                      <div className="mb-4 p-3 bg-gray-100 rounded-full">
+                        <Image className="w-8 h-8 text-gray-500" />
+                      </div>
+                      <div className="text-center mb-6">
+                        <h4 className="font-medium text-gray-800 mb-1">Upload Your Image</h4>
+                        <p className="text-sm text-gray-600 max-w-sm">
+                          Choose an image to customize this area. Supported formats: 
+                          {selectedTemplate.customizableAreas[currentAreaIndex]?.allowedFormats?.map(f => f.split('/')[1].toUpperCase()).join(', ') || 'JPG, PNG'}
+                        </p>
+                      </div>
+                      <label className="cursor-pointer">
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          onChange={handleImageUpload}
+                          accept={selectedTemplate.customizableAreas[currentAreaIndex]?.allowedFormats?.join(',') || 'image/jpeg,image/png'}
+                        />
+                        <div className="py-2 px-4 bg-red-600 text-white rounded-lg font-medium flex items-center gap-2 hover:bg-red-700 transition-colors">
+                          <Plus className="w-5 h-5" />
+                          <span>Choose Image</span>
+                        </div>
+                      </label>
+                    </div>
+                  )}
                 </div>
               </>
+            ) : selectedTemplate ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-gray-500 p-6">
+                <div className="mb-4 p-3 bg-gray-100 rounded-full">
+                  <Info className="w-8 h-8 text-gray-500" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">No Customizable Areas</h3>
+                <p className="text-center text-sm">
+                  This template doesn't have any customizable areas. 
+                  You can add it to cart as is or select a different template.
+                </p>
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-gray-500">
+                Select a template to begin customization
+              </div>
             )}
             
-            {/* Upload Status */}
-            <div className="mt-3">
-              <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center">
-                  <div className="w-1 h-5 bg-red-600 rounded-full mr-2"></div>
-                  <h3 className="text-lg font-bold text-gray-800">Upload Status</h3>
-                </div>
-              </div>
-              
-              <div className="border rounded-lg p-3 mb-3">
-                {productDetails?.customizableAreas?.map((area, index) => (
-                  <div 
-                    key={`status-${index}`} 
-                    className="flex justify-between items-center py-1.5 border-b last:border-b-0"
-                  >
-                    <div className="flex items-center text-sm">
-                      <span className="font-medium">Area {index + 1}</span>
-                      <span className="text-xs text-gray-500 ml-1">
-                        ({area.shape})
-                      </span>
-                    </div>
-                    <div>
-                      {customImages[index] ? (
-                        <div className="flex items-center bg-green-100 text-green-800 text-xs py-0.5 px-2 rounded-full">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1"></div>
-                          <span>Uploaded</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center bg-yellow-100 text-yellow-800 text-xs py-0.5 px-2 rounded-full">
-                          <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full mr-1"></div>
-                          <span>Pending</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {/* Add to Cart Button */}
+            <div className="mt-4 border-t pt-4">
+              <button
+                onClick={addToCartWithCustomization}
+                disabled={loading || !selectedTemplate || (selectedTemplate?.customizableAreas?.length > 0 && !customImages.some(img => img !== null))}
+                className="w-full py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span>Processing...</span>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                    </svg>
+                    <span>Add to Cart</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
-        </div>
-        
-        {/* Footer */}
-        <div className="border-t p-4 flex justify-between items-center bg-gray-50">
-          <button 
-            onClick={onClose}
-            className="py-2 px-4 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-100 transition-colors"
-          >
-            Cancel
-          </button>
-          
-          <button 
-            onClick={addToCartWithCustomization}
-            className="py-2 px-6 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors flex items-center"
-            disabled={loading || !customImages.some(img => img !== null)}
-          >
-            {loading ? 'Processing...' : 'Add to Cart'}
-          </button>
         </div>
       </div>
     </div>

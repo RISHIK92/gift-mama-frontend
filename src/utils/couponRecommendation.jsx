@@ -1,9 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { Tag, X, Clipboard, CheckCircle, RefreshCw, AlertCircle, Gift, Info } from 'lucide-react';
-import { BACKEND_URL } from '../Url';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './dialogComponents'
+import React, { useState, useEffect } from "react";
+import {
+  Tag,
+  X,
+  Clipboard,
+  CheckCircle,
+  RefreshCw,
+  AlertCircle,
+  Gift,
+  Info,
+} from "lucide-react";
+import { BACKEND_URL } from "../Url";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./dialogComponents";
 
-const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon = null }) => {
+const CouponRecommendations = ({
+  onApplyCoupon,
+  currentCartTotal,
+  appliedCoupon = null,
+}) => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,25 +38,28 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
   const fetchCoupons = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('authToken');
-      
+      const token = localStorage.getItem("authToken");
+
       if (!token) return;
-      
-      const response = await fetch(`${BACKEND_URL}coupons/eligible?cartTotal=${currentCartTotal}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+
+      const response = await fetch(
+        `${BACKEND_URL}coupons/eligible?cartTotal=${currentCartTotal}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      });
-      
+      );
+
       if (!response.ok) {
-        throw new Error('Failed to fetch coupons');
+        throw new Error("Failed to fetch coupons");
       }
-      
+
       const data = await response.json();
       setCoupons(data);
     } catch (error) {
-      console.error('Error fetching coupons:', error);
-      setError('Failed to load available coupons');
+      console.error("Error fetching coupons:", error);
+      setError("Failed to load available coupons");
     } finally {
       setLoading(false);
     }
@@ -57,11 +79,15 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
     setDialogOpen(false);
   };
 
-  // Calculate potential savings
   const calculateSavings = (coupon) => {
-    if (coupon.discountType === 'PERCENTAGE') {
+    if (coupon.discountType === "PERCENTAGE") {
+      {
+        console.log(currentCartTotal);
+      }
       const discountAmount = (currentCartTotal * coupon.discountValue) / 100;
-      return coupon.maxDiscountAmount ? Math.min(discountAmount, coupon.maxDiscountAmount) : discountAmount;
+      return coupon.maxDiscountAmount
+        ? Math.min(discountAmount, coupon.maxDiscountAmount)
+        : discountAmount;
     } else {
       return coupon.discountValue;
     }
@@ -121,11 +147,11 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
           <div className="flex items-center">
             <Gift className="h-5 w-5 mr-2 text-red-500" />
             <h3 className="font-medium text-gray-800">
-              {appliedCoupon ? 'Applied Coupon' : 'Available Coupons'}
+              {appliedCoupon ? "Applied Coupon" : "Available Coupons"}
             </h3>
           </div>
           {appliedCoupon ? (
-            <button 
+            <button
               onClick={() => onApplyCoupon(null)}
               className="text-sm text-red-500 flex items-center"
             >
@@ -153,9 +179,13 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
                       <div key={coupon.code} className="p-4 flex flex-col">
                         <div className="flex items-center mb-1">
                           <Tag className="h-4 w-4 text-red-500" />
-                          <span className="font-medium text-gray-800">{coupon.code}</span>
+                          <span className="font-medium text-gray-800">
+                            {coupon.code}
+                          </span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{coupon.description}</p>
+                        <p className="text-sm text-gray-600 mb-2">
+                          {coupon.description}
+                        </p>
                         <div className="flex items-center justify-between">
                           <div>
                             {coupon.minPurchase > 0 && (
@@ -165,7 +195,10 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
                             )}
                             {coupon.expiryDate && (
                               <p className="text-xs text-gray-500">
-                                Valid until: {new Date(coupon.expiryDate).toLocaleDateString()}
+                                Valid until:{" "}
+                                {new Date(
+                                  coupon.expiryDate
+                                ).toLocaleDateString()}
                               </p>
                             )}
                           </div>
@@ -190,8 +223,8 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
                                 disabled={applyingCoupon === coupon.code}
                                 className={`text-xs px-3 py-1 rounded ${
                                   applyingCoupon === coupon.code
-                                    ? 'bg-gray-200 text-gray-500'
-                                    : 'bg-red-500 text-white hover:bg-red-600'
+                                    ? "bg-gray-200 text-gray-500"
+                                    : "bg-red-500 text-white hover:bg-red-600"
                                 }`}
                               >
                                 {applyingCoupon === coupon.code ? (
@@ -200,7 +233,7 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
                                     Applying
                                   </span>
                                 ) : (
-                                  'Apply'
+                                  "Apply"
                                 )}
                               </button>
                             </div>
@@ -223,76 +256,86 @@ const CouponRecommendations = ({ onApplyCoupon, currentCartTotal, appliedCoupon 
             <div>
               <div className="flex items-center">
                 <Tag className="h-4 w-4 mr-2 text-green-600" />
-                <span className="font-medium text-gray-800">{appliedCoupon.code}</span>
+                <span className="font-medium text-gray-800">
+                  {appliedCoupon.code}
+                </span>
                 <span className="ml-2 text-sm text-green-600">Applied</span>
               </div>
-              <p className="text-sm text-gray-600 mt-1">{appliedCoupon.description}</p>
+              <p className="text-sm text-gray-600 mt-1">
+                {appliedCoupon.description}
+              </p>
             </div>
             <div className="text-green-600 font-medium">
-              {appliedCoupon.discountType === 'PERCENTAGE' 
-                ? `-${appliedCoupon.discountValue}%` 
+              {appliedCoupon.discountType === "PERCENTAGE"
+                ? `-${appliedCoupon.discountValue}%`
                 : `-₹${appliedCoupon.discountValue}`}
             </div>
           </div>
         )}
 
         {/* Display top 3 coupons in the main view if no coupon is applied */}
-        {!appliedCoupon && displayCoupons.map((coupon) => {
-          const savings = calculateSavings(coupon);
-          
-          return (
-            <div key={coupon.code} className="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex-1">
-                <div className="flex items-center mb-1">
-                  <Tag className="h-4 w-4 mr-2 text-red-500" />
-                  <span className="font-medium text-gray-800">{coupon.code}</span>
+        {!appliedCoupon &&
+          displayCoupons.map((coupon) => {
+            const savings = calculateSavings(coupon);
+
+            return (
+              <div
+                key={coupon.code}
+                className="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center mb-1">
+                    <Tag className="h-4 w-4 mr-2 text-red-500" />
+                    <span className="font-medium text-gray-800">
+                      {coupon.code}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600">{coupon.description}</p>
                 </div>
-                <p className="text-sm text-gray-600">{coupon.description}</p>
-              </div>
-              
-              <div className="mt-3 sm:mt-0 flex items-center">
-                <span className="text-sm font-medium text-green-600 mr-3">
-                  Save ₹{savings.toFixed(2)}
-                </span>
-                
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleCopyCode(coupon.code)}
-                    className="text-gray-500 p-1 rounded hover:bg-gray-100"
-                    title="Copy code"
-                  >
-                    {copied === coupon.code ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Clipboard className="h-4 w-4" />
-                    )}
-                  </button>
-                  
-                  <button
-                    onClick={() => handleApplyCoupon(coupon.code)}
-                    disabled={applyingCoupon === coupon.code}
-                    className={`text-xs px-3 py-1 rounded ${
-                      applyingCoupon === coupon.code
-                        ? 'bg-gray-200 text-gray-500'
-                        : 'bg-red-500 text-white hover:bg-red-600'
-                    }`}
-                  >
-                    {applyingCoupon === coupon.code ? (
-                      <span className="flex items-center">
-                        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                        Applying
-                      </span>
-                    ) : (
-                      'Apply'
-                    )}
-                  </button>
+
+                <div className="mt-3 sm:mt-0 flex items-center">
+                  <span className="text-sm font-medium text-green-600 mr-3">
+                    Save ₹{savings.toFixed(2)}
+                  </span>
+
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleCopyCode(coupon.code)}
+                      className="text-gray-500 p-1 rounded hover:bg-gray-100"
+                      title="Copy code"
+                    >
+                      {copied === coupon.code ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Clipboard className="h-4 w-4" />
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => handleApplyCoupon(coupon.code)}
+                      disabled={applyingCoupon === coupon.code}
+                      className={`text-xs px-3 py-1 rounded ${
+                        applyingCoupon === coupon.code
+                          ? "bg-gray-200 text-gray-500"
+                          : "bg-red-500 text-white hover:bg-red-600"
+                      }`}
+                    >
+                      {applyingCoupon === coupon.code ? (
+                        <span className="flex items-center">
+                          <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                          Applying
+                        </span>
+                      ) : (
+                        "Apply"
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
-      
+
       {/* "View more" button replaced by the Dialog trigger at the top */}
       {!appliedCoupon && coupons.length > 3 && (
         <div className="p-3 bg-gray-50 border-t flex justify-center">
