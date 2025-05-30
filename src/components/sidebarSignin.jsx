@@ -86,12 +86,12 @@ export function SidebarSignin() {
           Remember me
         </label>
 
-        <a
+        {/* <a
           href="#"
           className="ml-auto text-xs font-extralight text-[#FF3B3B] underline hover:text-red-600"
         >
           Forgot Password?
-        </a>
+        </a> */}
       </div>
 
       <div onClick={handleSignin}>
