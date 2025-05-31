@@ -373,6 +373,7 @@ const ProductPage = () => {
       console.error("Error adding to cart:", error);
       toast.error(`Error: ${error.message}`);
     } finally {
+      window.dispatchEvent(new Event("cartUpdated"));
       setCartLoading(false);
     }
   };

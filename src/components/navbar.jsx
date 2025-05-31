@@ -387,6 +387,321 @@ const LocationModal = ({ onClose, onAllowLocation, onManualEntry }) => {
   );
 };
 
+// Enhanced 3D Sparkle Animation Component
+const SparkleEffect = ({ isActive }) => {
+  const [sparkles, setSparkles] = useState([]);
+  const animationRef = useRef();
+
+  // Generate random sparkle properties
+  const generateSparkle = (index) => ({
+    id: Math.random(),
+    size: Math.random() * 3 + 1, // 1-4px
+    color: [
+      "#FFD700",
+      "#FFA500",
+      "#FF6B6B",
+      "#4ECDC4",
+      "#45B7D1",
+      "#96CEB4",
+      "#FECA57",
+    ][Math.floor(Math.random() * 7)],
+    startX: Math.random() * 60 - 30, // -30 to 30px from center
+    startY: Math.random() * 60 - 30,
+    endX: (Math.random() - 0.5) * 120, // -60 to 60px
+    endY: (Math.random() - 0.5) * 120,
+    rotation: Math.random() * 360,
+    rotationSpeed: (Math.random() - 0.5) * 720, // -360 to 360 degrees per second
+    scale: Math.random() * 0.5 + 0.5, // 0.5 to 1
+    delay: Math.random() * 0.5, // 0 to 0.5s delay
+    duration: Math.random() * 0.8 + 0.8, // 0.8 to 1.6s
+    easing: [
+      "ease-out",
+      "ease-in-out",
+      "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+    ][Math.floor(Math.random() * 3)],
+    zIndex: Math.floor(Math.random() * 10) + 1,
+  });
+
+  useEffect(() => {
+    if (isActive) {
+      // Generate 20 sparkles with different properties
+      const newSparkles = Array.from({ length: 20 }, (_, i) =>
+        generateSparkle(i)
+      );
+      setSparkles(newSparkles);
+
+      // Clear sparkles after animation
+      const timer = setTimeout(() => {
+        setSparkles([]);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    } else {
+      setSparkles([]);
+    }
+  }, [isActive]);
+
+  if (!isActive || sparkles.length === 0) return null;
+
+  const SparkleParticle = ({ sparkle }) => (
+    <div
+      className="absolute pointer-events-none"
+      style={{
+        left: "50%",
+        top: "50%",
+        width: `${sparkle.size}px`,
+        height: `${sparkle.size}px`,
+        backgroundColor: sparkle.color,
+        borderRadius: "50%",
+        transform: `translate(-50%, -50%) translate(${sparkle.startX}px, ${sparkle.startY}px) rotate(${sparkle.rotation}deg) scale(${sparkle.scale})`,
+        animation: `sparkle-move-${sparkle.id} ${sparkle.duration}s ${sparkle.easing} ${sparkle.delay}s forwards, sparkle-rotate-${sparkle.id} ${sparkle.duration}s linear ${sparkle.delay}s forwards`,
+        zIndex: sparkle.zIndex,
+        boxShadow: `0 0 ${sparkle.size * 2}px ${sparkle.color}40, 0 0 ${
+          sparkle.size * 4
+        }px ${sparkle.color}20`,
+      }}
+    >
+      <style jsx>{`
+        @keyframes sparkle-move-${sparkle.id} {
+          0% {
+            transform: translate(-50%, -50%)
+              translate(${sparkle.startX}px, ${sparkle.startY}px)
+              scale(${sparkle.scale}) rotateZ(${sparkle.rotation}deg);
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+            transform: translate(-50%, -50%)
+              translate(${sparkle.startX}px, ${sparkle.startY}px)
+              scale(${sparkle.scale * 1.2})
+              rotateZ(${sparkle.rotation + sparkle.rotationSpeed * 0.1}deg);
+          }
+          50% {
+            opacity: 1;
+            transform: translate(-50%, -50%)
+              translate(
+                ${sparkle.startX + (sparkle.endX - sparkle.startX) * 0.5}px,
+                ${sparkle.startY + (sparkle.endY - sparkle.startY) * 0.5}px
+              )
+              scale(${sparkle.scale})
+              rotateZ(${sparkle.rotation + sparkle.rotationSpeed * 0.5}deg);
+          }
+          100% {
+            transform: translate(-50%, -50%)
+              translate(${sparkle.endX}px, ${sparkle.endY}px) scale(0)
+              rotateZ(${sparkle.rotation + sparkle.rotationSpeed}deg);
+            opacity: 0;
+          }
+        }
+        @keyframes sparkle-rotate-${sparkle.id} {
+          from {
+            filter: hue-rotate(0deg) brightness(1);
+          }
+          to {
+            filter: hue-rotate(360deg) brightness(1.5);
+          }
+        }
+      `}</style>
+    </div>
+  );
+
+  return (
+    <div
+      className="absolute inset-0 overflow-visible pointer-events-none"
+      style={{ perspective: "1000px" }}
+    >
+      {sparkles.map((sparkle) => (
+        <SparkleParticle key={sparkle.id} sparkle={sparkle} />
+      ))}
+
+      {/* Additional 3D depth layers */}
+      <div className="absolute inset-0 pointer-events-none">
+        {Array.from({ length: 8 }, (_, i) => (
+          <div
+            key={`depth-${i}`}
+            className="absolute w-2 h-2 rounded-full animate-pulse"
+            style={{
+              left: `${20 + Math.random() * 60}%`,
+              top: `${20 + Math.random() * 60}%`,
+              backgroundColor: ["#FFD700", "#FFA500", "#FF6B6B", "#4ECDC4"][
+                i % 4
+              ],
+              animationDelay: `${i * 0.1}s`,
+              animationDuration: "1.5s",
+              transform: `translateZ(${i * 10}px) scale(${1 - i * 0.1})`,
+              opacity: 0.6 - i * 0.05,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Burst effect rings */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        {[0, 1, 2].map((ring) => (
+          <div
+            key={`ring-${ring}`}
+            className="absolute border-2 rounded-full pointer-events-none"
+            style={{
+              width: "20px",
+              height: "20px",
+              borderColor: ["#FFD700", "#FF6B6B", "#4ECDC4"][ring],
+              animation: `expand-ring-${ring} 1.2s ease-out forwards`,
+              animationDelay: `${ring * 0.1}s`,
+              left: "-10px",
+              top: "-10px",
+              opacity: 0,
+            }}
+          >
+            <style jsx>{`
+              @keyframes expand-ring-${ring} {
+                0% {
+                  transform: scale(0.1) rotate(0deg);
+                  opacity: 0.8;
+                  border-width: 3px;
+                }
+                50% {
+                  opacity: 0.6;
+                  border-width: 2px;
+                }
+                100% {
+                  transform: scale(${3 + ring * 2}) rotate(180deg);
+                  opacity: 0;
+                  border-width: 1px;
+                }
+              }
+            `}</style>
+          </div>
+        ))}
+      </div>
+
+      {/* Additional floating particles */}
+      <div className="absolute inset-0 pointer-events-none">
+        {Array.from({ length: 12 }, (_, i) => (
+          <div
+            key={`float-${i}`}
+            className="absolute w-1 h-1 rounded-full"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              backgroundColor: [
+                "#FFD700",
+                "#FFA500",
+                "#FF6B6B",
+                "#4ECDC4",
+                "#45B7D1",
+              ][i % 5],
+              animation: `float-particle-${i} ${
+                1 + Math.random()
+              }s ease-in-out forwards`,
+              animationDelay: `${Math.random() * 0.5}s`,
+            }}
+          >
+            <style jsx>{`
+              @keyframes float-particle-${i} {
+                0% {
+                  transform: translateY(0px) translateX(0px) scale(0);
+                  opacity: 0;
+                }
+                20% {
+                  opacity: 1;
+                  transform: translateY(-${10 + Math.random() * 20}px)
+                    translateX(${(Math.random() - 0.5) * 40}px) scale(1);
+                }
+                100% {
+                  transform: translateY(-${30 + Math.random() * 40}px)
+                    translateX(${(Math.random() - 0.5) * 80}px) scale(0);
+                  opacity: 0;
+                }
+              }
+            `}</style>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Enhanced Cart Icon Component
+const CartIcon = ({ cartCount, onCartClick }) => {
+  const [showSparkle, setShowSparkle] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const prevCountRef = useRef(cartCount);
+
+  useEffect(() => {
+    // Trigger sparkle animation when cart count increases
+    if (cartCount > prevCountRef.current && prevCountRef.current !== null) {
+      setShowSparkle(true);
+      setIsAnimating(true);
+
+      // Reset animation after duration
+      const timer = setTimeout(() => {
+        setShowSparkle(false);
+        setIsAnimating(false);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = cartCount;
+  }, [cartCount]);
+
+  return (
+    <div
+      className={`relative cursor-pointer pt-1 mr-4 lg:mr-0 transition-all duration-300 ${
+        isAnimating ? "animate-bounce scale-110" : ""
+      } ${isHovered ? "scale-105" : ""}`}
+      onClick={onCartClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        transform: isHovered ? "translateY(-2px)" : "translateY(0)",
+        filter: isAnimating
+          ? "drop-shadow(0 4px 8px rgba(255, 59, 59, 0.3))"
+          : "none",
+      }}
+    >
+      <ShoppingCart
+        className={`h-6 w-6 transition-all duration-300 ${
+          isAnimating ? "text-red-500" : "text-gray-700"
+        } ${isHovered ? "text-red-400" : ""}`}
+      />
+      <div
+        className={`absolute -top-2 -right-2 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ${
+          isAnimating
+            ? "scale-125 bg-gradient-to-r from-yellow-400 to-orange-500 shadow-lg"
+            : "bg-red-500"
+        } ${isHovered ? "bg-red-400" : ""}`}
+        style={{
+          boxShadow: isAnimating
+            ? "0 0 15px rgba(255, 193, 7, 0.6), 0 0 30px rgba(255, 193, 7, 0.3)"
+            : "none",
+        }}
+      >
+        {cartCount}
+      </div>
+      <SparkleEffect isActive={showSparkle} />
+
+      {/* Hover sparkles */}
+      {isHovered && (
+        <div className="absolute inset-0 pointer-events-none">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div
+              key={`hover-${i}`}
+              className="absolute w-1 h-1 bg-red-400 rounded-full animate-ping"
+              style={{
+                left: `${20 + Math.random() * 60}%`,
+                top: `${20 + Math.random() * 60}%`,
+                animationDelay: `${i * 0.1}s`,
+                animationDuration: "2s",
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const Navbar = ({ setNavCategory }) => {
   const token = localStorage.getItem("authToken");
   const [location, setLocation] = useState({ city: "", pincode: "" });
@@ -398,6 +713,7 @@ export const Navbar = ({ setNavCategory }) => {
   const navigate = useNavigate();
   const [cartCount, setCartCount] = useState(0);
   const [city, setCity] = useState("");
+  const cartIntervalRef = useRef(null);
 
   const fetchCartItems = useCallback(async () => {
     if (!token) {
@@ -409,7 +725,6 @@ export const Navbar = ({ setNavCategory }) => {
       const response = await axios.get(`${BACKEND_URL}cart`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       setCartCount(response.data.items?.length || 0);
     } catch (error) {
       console.log("Error fetching cart items:", error);
@@ -417,11 +732,9 @@ export const Navbar = ({ setNavCategory }) => {
     }
   }, [token]);
 
+  // Also listen for cart update events
   useEffect(() => {
-    fetchCartItems();
-
     window.addEventListener("cartUpdated", fetchCartItems);
-
     return () => {
       window.removeEventListener("cartUpdated", fetchCartItems);
     };
@@ -544,15 +857,10 @@ export const Navbar = ({ setNavCategory }) => {
         </div>
 
         <div className="flex items-center ml-auto lg:mx-32">
-          <div
-            className="relative cursor-pointer pt-1 mr-4 lg:mr-0"
-            onClick={() => navigate("/cart")}
-          >
-            <ShoppingCart className="h-6 w-6 text-gray-700" />
-            <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-              {cartCount}
-            </div>
-          </div>
+          <CartIcon
+            cartCount={cartCount}
+            onCartClick={() => navigate("/cart")}
+          />
 
           <div className="hidden lg:block">
             {token ? (

@@ -255,6 +255,7 @@ export const Cart = () => {
       setError(`Failed to remove item: ${error.message}`);
       setTimeout(() => setError(null), 3000);
     } finally {
+      window.dispatchEvent(new Event("cartUpdated"));
       setActionLoading({ type: null, itemId: null });
     }
   };
