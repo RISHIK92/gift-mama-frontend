@@ -923,6 +923,17 @@ export const Navbar = ({ setNavCategory }) => {
             {e.category}
           </button>
         ))}
+        <button
+          className="px-4 py-2 text-gray-600 hover:text-red-500 text-sm font-medium"
+          onClick={() =>
+            window.open(
+              "https://mail.google.com/mail/?view=cm&fs=1&to=info@photomama.in",
+              "_blank"
+            )
+          }
+        >
+          Contact Us
+        </button>
       </div>
 
       {showLocationModal && (

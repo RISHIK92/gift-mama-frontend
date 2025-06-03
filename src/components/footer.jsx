@@ -36,7 +36,11 @@ export const Footer = () => {
             <p className="text-sm">
               We also offer Photography Services
               <br />
-              <a href="#" className="text-black font-bold hover:text-[#FF3B3B]">
+              <a
+                href="https://photomama.in/"
+                className="text-black font-bold hover:text-[#FF3B3B]"
+                target="_blank"
+              >
                 Click to redirect to PhotoMAMA Photography
               </a>
             </p>
@@ -47,37 +51,43 @@ export const Footer = () => {
             <h3 className="font-bold mb-4 text-lg">Categories</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="hover:text-[#FF3B3B]">
+                <a href="/category/Birthday" className="hover:text-[#FF3B3B]">
                   Birthday
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#FF3B3B]">
+                <a href="/category/Wedding" className="hover:text-[#FF3B3B]">
                   Wedding
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#FF3B3B]">
+                <a
+                  href="/category/Corporate Events"
+                  className="hover:text-[#FF3B3B]"
+                >
                   Corporate Events
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#FF3B3B]">
+                <a href="/category/Festivals" className="hover:text-[#FF3B3B]">
                   Festivals
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#FF3B3B]">
+                <a href="/category/Casual" className="hover:text-[#FF3B3B]">
                   Casual
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#FF3B3B]">
+                <a
+                  href="/category/Trending Frames"
+                  className="hover:text-[#FF3B3B]"
+                >
                   Trending Frames
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#FF3B3B]">
+                <a href="/category/Customized" className="hover:text-[#FF3B3B]">
                   Customized
                 </a>
               </li>
@@ -89,32 +99,36 @@ export const Footer = () => {
             <h3 className="font-bold mb-4 text-lg">Shortcuts</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="hover:text-[#FF3B3B]">
+                <a href="/profile" className="hover:text-[#FF3B3B]">
                   My Account
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#FF3B3B]">
+                <a href="/cart" className="hover:text-[#FF3B3B]">
                   Cart
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#FF3B3B]">
-                  Login
+                <a href="/signin" className="hover:text-[#FF3B3B]">
+                  Signin
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#FF3B3B]">
-                  Register
+                <a href="/signup" className="hover:text-[#FF3B3B]">
+                  Signup
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#FF3B3B]">
+                <a
+                  href="https://photomama.in/"
+                  className="hover:text-[#FF3B3B]"
+                  target="_blank"
+                >
                   PhotoMAMA Photography
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#FF3B3B]">
+                <a href="/home" className="hover:text-[#FF3B3B]">
                   Home
                 </a>
               </li>
@@ -146,7 +160,11 @@ export const Footer = () => {
         <div className="flex flex-col sm:flex-row justify-between text-sm">
           <div className="mb-4 sm:mb-0">
             © 2025 PhotoMAMA Gifts | Website by{" "}
-            <a href="#" className="text-[#FF3B3B] hover:underline">
+            <a
+              href="https://ajsinnovations.in/"
+              className="text-[#FF3B3B] hover:underline"
+              target="_blank"
+            >
               AJS Innovations
             </a>
           </div>
@@ -158,10 +176,10 @@ export const Footer = () => {
             <a href="#" className="text-[#FF3B3B] hover:underline">
               Privacy Policy
             </a>
-            <span>|</span>
+            {/* <span>|</span>
             <a href="#" className="text-[#FF3B3B] hover:underline">
               Refund Policy
-            </a>
+            </a> */}
           </div>
         </div>
       </div>

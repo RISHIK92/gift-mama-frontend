@@ -157,7 +157,7 @@ export default function Wallet() {
         key: "rzp_test_IiBhDWqxB82lQj",
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "Your Company Name",
+        name: "PhotoMama",
         description: "Wallet Top-up",
         order_id: orderData.id,
         handler: async (response) => {
