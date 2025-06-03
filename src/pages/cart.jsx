@@ -476,7 +476,7 @@ export const Cart = () => {
       }
 
       const options = {
-        key: "rzp_test_IiBhDWqxB82lQj",
+        key: import.meta.env.VITE_RAZORPAY_KEY,
         amount: orderData.amount * 100,
         currency: orderData.currency,
         name: "Your Company Name",

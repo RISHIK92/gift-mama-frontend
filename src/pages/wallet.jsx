@@ -154,7 +154,7 @@ export default function Wallet() {
       const orderData = await orderResponse.json();
 
       const options = {
-        key: "rzp_test_IiBhDWqxB82lQj",
+        key: import.meta.env.VITE_RAZORPAY_KEY,
         amount: orderData.amount,
         currency: orderData.currency,
         name: "PhotoMama",
