@@ -136,6 +136,7 @@ export const Wishlist = () => {
       });
       setTimeout(() => setNotification(null), 3000);
     } finally {
+      window.dispatchEvent(new Event("cartUpdated"));
       setActionLoading({ type: null, itemId: null });
     }
   };

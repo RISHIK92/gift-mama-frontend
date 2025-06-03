@@ -732,7 +732,19 @@ export const Navbar = ({ setNavCategory }) => {
     }
   }, [token]);
 
-  // Also listen for cart update events
+  useEffect(() => {
+    fetchCartItems();
+
+    // Set up interval to periodically check cart (optional)
+    cartIntervalRef.current = setInterval(fetchCartItems, 5000); // 30 seconds
+
+    return () => {
+      if (cartIntervalRef.current) {
+        clearInterval(cartIntervalRef.current);
+      }
+    };
+  }, [token, fetchCartItems]);
+
   useEffect(() => {
     window.addEventListener("cartUpdated", fetchCartItems);
     return () => {
