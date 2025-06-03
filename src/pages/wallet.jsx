@@ -58,12 +58,12 @@ export default function Wallet() {
 
   const renderTransactionIcon = (type) => {
     return type === "credit" ? (
-      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100">
-        <ArrowDownRight className="text-emerald-600" size={20} />
+      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
+        <ArrowDownRight className="text-green-600" size={20} />
       </div>
     ) : (
-      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-rose-100">
-        <ArrowUpRight className="text-rose-600" size={20} />
+      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-100">
+        <ArrowUpRight className="text-red-600" size={20} />
       </div>
     );
   };
@@ -91,20 +91,17 @@ export default function Wallet() {
       const balanceData = await balanceResponse.json();
       const transactionsData = await transactionsResponse.json();
 
-      // Convert string amounts to numbers
       setBalance(parseFloat(balanceData.balance) || 0);
 
-      // Map transactions to ensure amount is a number
       const formattedTransactions =
         transactionsData.transactions?.map((tx) => ({
           ...tx,
           amount: parseFloat(tx.amount),
-          createdAt: tx.createdAt, // Keep as string for display
+          createdAt: tx.createdAt,
         })) || [];
 
       setTransactions(formattedTransactions);
 
-      // Update pagination if available in response
       setPagination({
         currentPage: transactionsData.pagination?.currentPage || 1,
         totalPages: transactionsData.pagination?.totalPages || 1,
@@ -185,7 +182,6 @@ export default function Wallet() {
 
             if (verifyData.status === "success") {
               toast.success("Payment successful");
-              // Convert string balance to number
               setBalance(parseFloat(verifyData.newBalance));
               setAddMoneyAmount("");
               setIsAddMoneyModalOpen(false);
@@ -198,7 +194,7 @@ export default function Wallet() {
             toast.error("Payment verification error");
           }
         },
-        theme: { color: "#F37254" },
+        theme: { color: "#EF4444" }, // Red color for Razorpay
       };
 
       const razorpayWindow = new window.Razorpay(options);
@@ -224,20 +220,20 @@ export default function Wallet() {
 
   if (error) {
     return (
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center p-4">
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
           <div className="mb-6 flex items-center justify-center">
-            <div className="w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center">
-              <AlertCircle className="text-rose-600" size={32} />
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+              <AlertCircle className="text-red-600" size={32} />
             </div>
           </div>
-          <h3 className="text-xl font-semibold text-slate-800 mb-2">
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">
             Something went wrong
           </h3>
-          <p className="text-slate-600 mb-6">{error}</p>
+          <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={fetchWalletData}
-            className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-6 py-3 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-300 flex items-center justify-center mx-auto"
+            className="bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-3 rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center justify-center mx-auto"
           >
             <RefreshCw className="mr-2" size={18} /> Try Again
           </button>
@@ -247,13 +243,13 @@ export default function Wallet() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+    <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <Toaster
         position="top-right"
         toastOptions={{
           success: {
             style: {
-              background: "#10b981",
+              background: "#10B981",
               color: "white",
               borderRadius: "12px",
               padding: "16px",
@@ -262,12 +258,12 @@ export default function Wallet() {
             },
             iconTheme: {
               primary: "white",
-              secondary: "#10b981",
+              secondary: "#10B981",
             },
           },
           error: {
             style: {
-              background: "#ef4444",
+              background: "#EF4444",
               color: "white",
               borderRadius: "12px",
               padding: "16px",
@@ -276,7 +272,7 @@ export default function Wallet() {
             },
             iconTheme: {
               primary: "white",
-              secondary: "#ef4444",
+              secondary: "#EF4444",
             },
           },
         }}
@@ -287,31 +283,31 @@ export default function Wallet() {
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md transform transition-all animate-fadeIn">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold text-slate-800">
+              <h2 className="text-2xl font-semibold text-gray-800">
                 Add Money
               </h2>
               <button
                 onClick={() => setIsAddMoneyModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors rounded-full p-1 hover:bg-slate-100"
+                className="text-gray-400 hover:text-gray-600 transition-colors rounded-full p-1 hover:bg-gray-100"
               >
                 <X size={24} />
               </button>
             </div>
 
             <div className="mb-8">
-              <label className="block text-sm font-medium text-slate-600 mb-2">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
                 Enter Amount
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <IndianRupee className="text-slate-400" size={20} />
+                  <IndianRupee className="text-gray-400" size={20} />
                 </div>
                 <input
                   type="number"
                   placeholder="0.00"
                   value={addMoneyAmount}
                   onChange={(e) => setAddMoneyAmount(e.target.value)}
-                  className="w-full py-4 pl-12 pr-4 text-xl font-medium border-2 border-slate-200 rounded-xl focus:border-red-500 focus:ring focus:ring-red-200 focus:ring-opacity-50 focus:outline-none transition-colors"
+                  className="w-full py-4 pl-12 pr-4 text-xl font-medium border-2 border-gray-200 rounded-xl focus:border-red-500 focus:ring focus:ring-red-200 focus:ring-opacity-50 focus:outline-none transition-colors"
                   min="0"
                   step="0.01"
                 />
@@ -322,7 +318,7 @@ export default function Wallet() {
                   <button
                     key={amount}
                     onClick={() => setAddMoneyAmount(amount.toString())}
-                    className="flex-1 py-2 px-3 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors text-sm"
+                    className="flex-1 py-2 px-3 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors text-sm"
                   >
                     ₹{amount}
                   </button>
@@ -333,14 +329,14 @@ export default function Wallet() {
             <div className="flex gap-4">
               <button
                 onClick={() => setIsAddMoneyModalOpen(false)}
-                className="flex-1 py-3 px-4 rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors font-medium"
+                className="flex-1 py-3 px-4 rounded-xl border-2 border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={initiateRazorpayPayment}
                 disabled={isProcessingPayment}
-                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600 transition-all font-medium disabled:opacity-70"
+                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 transition-all font-medium disabled:opacity-70"
               >
                 {isProcessingPayment ? (
                   <RefreshCw className="animate-spin mx-auto" size={20} />
@@ -356,7 +352,7 @@ export default function Wallet() {
       <div className="max-w-lg mx-auto">
         {/* Balance Card */}
         <div className="bg-white rounded-3xl shadow-xl overflow-hidden mb-8 transform transition-all hover:shadow-2xl">
-          <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-8">
+          <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-8">
             <div className="flex justify-between items-center mb-8">
               <div className="flex items-center">
                 <div className="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center mr-3">
@@ -390,10 +386,10 @@ export default function Wallet() {
           <div className="p-6">
             <button
               onClick={() => setIsAddMoneyModalOpen(true)}
-              className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-red-50 to-pink-50 rounded-2xl hover:from-red-100 hover:to-pink-100 transition-all duration-300 border border-slate-200"
+              className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-red-50 to-red-100 rounded-2xl hover:from-red-100 hover:to-red-200 transition-all duration-300 border border-gray-200"
             >
               <CreditCard className="text-red-500" size={24} />
-              <span className="font-medium text-slate-800">Add Money</span>
+              <span className="font-medium text-gray-800">Add Money</span>
             </button>
           </div>
         </div>
@@ -402,12 +398,12 @@ export default function Wallet() {
         <div className="bg-white rounded-3xl shadow-xl overflow-hidden mb-8">
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-semibold text-slate-800">
+              <h3 className="text-xl font-semibold text-gray-800">
                 Recent Transactions
               </h3>
               <div className="flex items-center gap-2">
-                <Clock size={16} className="text-slate-400" />
-                <span className="text-sm text-slate-500">
+                <Clock size={16} className="text-gray-400" />
+                <span className="text-sm text-gray-500">
                   Last updated {new Date().toLocaleTimeString()}
                 </span>
               </div>
@@ -415,23 +411,20 @@ export default function Wallet() {
 
             {isLoading && transactions.length === 0 ? (
               <div className="py-12 flex flex-col items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                  <RefreshCw
-                    className="animate-spin text-slate-400"
-                    size={24}
-                  />
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                  <RefreshCw className="animate-spin text-gray-400" size={24} />
                 </div>
-                <p className="text-slate-500">Loading transactions...</p>
+                <p className="text-gray-500">Loading transactions...</p>
               </div>
             ) : transactions.length === 0 ? (
               <div className="py-12 flex flex-col items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                  <CreditCard className="text-slate-400" size={24} />
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                  <CreditCard className="text-gray-400" size={24} />
                 </div>
-                <h4 className="text-lg font-medium text-slate-700 mb-2">
+                <h4 className="text-lg font-medium text-gray-700 mb-2">
                   No transactions yet
                 </h4>
-                <p className="text-slate-500 text-center max-w-xs">
+                <p className="text-gray-500 text-center max-w-xs">
                   Add money to your wallet to get started with transactions
                 </p>
               </div>
@@ -441,15 +434,15 @@ export default function Wallet() {
                   {transactions.map((transaction) => (
                     <div
                       key={transaction.id}
-                      className="group flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 transition-all duration-300"
+                      className="group flex items-center justify-between p-4 rounded-2xl hover:bg-gray-50 transition-all duration-300"
                     >
                       <div className="flex items-center gap-4">
                         {renderTransactionIcon(transaction.type)}
                         <div>
-                          <p className="font-medium text-slate-800 mb-1">
+                          <p className="font-medium text-gray-800 mb-1">
                             {transaction.description || "Transaction"}
                           </p>
-                          <p className="text-sm text-slate-500">
+                          <p className="text-sm text-gray-500">
                             {new Date(transaction.createdAt).toLocaleDateString(
                               "en-US",
                               {
@@ -468,8 +461,8 @@ export default function Wallet() {
                           text-lg font-semibold
                           ${
                             transaction.type === "credit"
-                              ? "text-emerald-600"
-                              : "text-rose-600"
+                              ? "text-green-600"
+                              : "text-red-600"
                           }
                         `}
                       >
@@ -482,18 +475,18 @@ export default function Wallet() {
 
                 {/* Pagination */}
                 {pagination.totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-center gap-2 pt-4 border-t border-gray-100">
                     <button
                       onClick={() =>
                         handlePageChange(pagination.currentPage - 1)
                       }
                       disabled={pagination.currentPage === 1}
-                      className="w-10 h-10 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                      className="w-10 h-10 rounded-lg flex items-center justify-center border border-gray-200 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
                     >
                       <ChevronLeft size={18} />
                     </button>
 
-                    <div className="text-sm text-slate-600">
+                    <div className="text-sm text-gray-600">
                       Page {pagination.currentPage} of {pagination.totalPages}
                     </div>
 
@@ -504,7 +497,7 @@ export default function Wallet() {
                       disabled={
                         pagination.currentPage === pagination.totalPages
                       }
-                      className="w-10 h-10 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                      className="w-10 h-10 rounded-lg flex items-center justify-center border border-gray-200 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
                     >
                       <ChevronRight size={18} />
                     </button>
