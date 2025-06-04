@@ -329,19 +329,28 @@ export const OrderDetail = () => {
                 <span>Tax</span>
                 <span>₹{order.summary.tax}</span>
               </div>
-              {order.couponDiscountAmount &&
-                parseFloat(order.couponDiscountAmount) > 0 && (
-                  <div className="flex justify-between text-sm text-green-600">
-                    <span>Coupon Discount</span>
-                    <span>
-                      -₹{parseFloat(order.couponDiscountAmount).toFixed(2)}
-                    </span>
-                  </div>
-                )}
+              {order.summary.total +
+                order.summary.deliveryFee -
+                order.walletAmount -
+                order.amount >
+                0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Coupon Discount</span>
+                  <span>
+                    -₹
+                    {parseFloat(
+                      order.summary.total +
+                        order.summary.deliveryFee -
+                        order.walletAmount -
+                        order.amount
+                    )}
+                  </span>
+                </div>
+              )}
               {order.useWallet && order.walletAmount > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
                   <span>Wallet Amount Used</span>
-                  <span>-₹{order.walletAmount.toFixed(2)}</span>
+                  <span>-₹{order.walletAmount}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-red-500 pt-2 border-t border-gray-200">

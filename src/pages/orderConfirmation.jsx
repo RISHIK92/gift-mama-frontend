@@ -190,7 +190,7 @@ export const OrderConfirmation = () => {
             <div className="flex justify-between">
               <span>Wallet Credit Used:</span>
               <span className="text-green-500">
-                -₹{order?.walletAmountUsed.toFixed(2)}
+                -₹{order?.walletAmountUsed}
               </span>
             </div>
           )}

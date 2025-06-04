@@ -5,7 +5,6 @@ export default defineConfig({
   base: "./",
   plugins: [react()],
   server: {
-    host: "0.0.0.0", // <--- add this line
     historyApiFallback: true,
   },
 });
